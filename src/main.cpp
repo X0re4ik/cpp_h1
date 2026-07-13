@@ -67,6 +67,7 @@ struct OptionDesc
 
 void printHelp(const OptionDesc* const optionDesc, int optionDescSize)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i != optionDescSize; ++i)
     {
         // NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -87,24 +88,26 @@ void makeTask(int argc, char** argv, Task* task)
 {
     task->status = OperationStatus::NOT_STATE;
 
-    const char* const shortOpts = "asmdfh";
+    const char* const shortOpts = "asmdfph";
     // NOLINTNEXTLINE(modernize-avoid-c-arrays, cppcoreguidelines-avoid-c-arrays)
     const option longOpts[] = {{"add", no_argument, nullptr, 'a'},
                                {"sub", no_argument, nullptr, 's'},
                                {"mul", no_argument, nullptr, 'm'},
                                {"div", no_argument, nullptr, 'd'},
                                {"factorial", no_argument, nullptr, 'f'},
+                               {"power", no_argument, nullptr, 'p'},
                                {"help", no_argument, nullptr, 'h'},
                                {nullptr, 0, nullptr, 0}};
     // NOLINTNEXTLINE(modernize-avoid-c-arrays, cppcoreguidelines-avoid-c-arrays)
     const OptionDesc longOptsWithDesc[] = {
-        {longOpts[0], "Сложение двух чисел"},
-        {longOpts[1], "Вычитание двух чисел"},
-        {longOpts[2], "Умножение двух чисел"},
-        {longOpts[3], "Деление двух чисел"},
-        {longOpts[4], "Вычисление факториала"},
-        {longOpts[5], "Показать эту справку"},
-        {longOpts[6], nullptr}};
+        {longOpts[0], "Сложение двух чисел. Example: h1 --add 2 5"},
+        {longOpts[1], "Вычитание двух чисел. Example: h1 --sub 2 5"},
+        {longOpts[2], "Умножение двух чисел. Example: h1 --mul 2 5"},
+        {longOpts[3], "Деление двух чисел. Example: h1 --div 2 5"},
+        {longOpts[4], "Вычисление факториала. Example: h1 --factorial 2 5"},
+        {longOpts[5], "Врзведение в степень. Example: h1 --power 2 5"},
+        {longOpts[6], "Показать эту справку."},
+        {longOpts[7], nullptr}};
 
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     const auto opt = getopt_long(argc, argv, shortOpts,
@@ -134,6 +137,9 @@ void makeTask(int argc, char** argv, Task* task)
             break;
         case 'f':
             *operation = OperationEnum::FACTORIAL;
+            break;
+        case 'p':
+            *operation = OperationEnum::POWER;
             break;
         case 'h':
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
@@ -224,6 +230,11 @@ void makeCalculate(Task* task)
         case OperationEnum::FACTORIAL:
         {
             h1::makeFactorial(task);
+            break;
+        }
+        case OperationEnum::POWER:
+        {
+            h1::makePower(task);
             break;
         }
         default:

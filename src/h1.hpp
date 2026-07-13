@@ -7,7 +7,8 @@ enum class OperationEnum : uint8_t
     SUBTRACTION = 2,
     MULTIPLICATION = 3,
     DIVISION = 4,
-    FACTORIAL = 5
+    FACTORIAL = 5,
+    POWER = 6,
 };
 
 enum class OperationStatus : uint16_t
@@ -96,6 +97,7 @@ inline void makeSubtraction(struct Task* task);
 inline void makeMultiplication(struct Task* task);
 inline void makeDivision(struct Task* task);
 inline void makeFactorial(struct Task* task);
+inline void makePower(struct Task* task);
 } // namespace h1
 
 void h1::makeAddition(struct Task* task)
@@ -169,5 +171,28 @@ void h1::makeFactorial(struct Task* task)
         return;
     }
 
+    task->status = OperationStatus::OK;
+}
+
+void h1::makePower(struct Task* task)
+{
+    if (*task->right < 0)
+    {
+        task->status = OperationStatus::ERROR;
+        return;
+    }
+    auto exp = static_cast<int>(*task->right);
+    MathDefault_t result = 1.0;
+    for (int i = 0; i < exp; ++i)
+    {
+        result *= *task->left;
+    }
+
+    *task->result = result;
+    if (isOverflowResult(*task->result))
+    {
+        task->status = OperationStatus::ERROR_OVERFLOW;
+        return;
+    }
     task->status = OperationStatus::OK;
 }
