@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 3.22)
 
 project(HOMEWORK1 VERSION 1.0 LANGUAGES CXX)
 
+string(ASCII 27 Esc)
+set(COLOR_RESET "${Esc}[0m")
+set(COLOR_RED "${Esc}[31m")
+set(COLOR_GREEN "${Esc}[32m")
+set(COLOR_YELLOW "${Esc}[33m")
+set(COLOR_BLUE "${Esc}[34m")
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 SET(HOMEWORK1 h1)
@@ -11,7 +19,7 @@ add_executable(${HOMEWORK1}
 )
 
 target_compile_options(${HOMEWORK1}
-  PRIVATE
+    PRIVATE
     -g
     -fpermissive
     -Wall
@@ -21,15 +29,29 @@ target_compile_options(${HOMEWORK1}
 )
 
 set_target_properties(${HOMEWORK1}
-  PROPERTIES
+    PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
 
+
+include(FetchContent)
+
+FetchContent_Declare(
+    cpp_h1_lib
+    GIT_REPOSITORY https://github.com/X0re4ik/cpp_h1_lib.git
+    GIT_TAG v1.1.5
+)
+
+FetchContent_MakeAvailable(cpp_h1_lib)
+
+target_link_libraries(${HOMEWORK1} PRIVATE H1)
+
+
 if(USE_CLANG_FORMAT_CHECK)
     find_program(CLANG_FORMAT_PATH NAMES clang-format-21 REQUIRED)
-    message(STATUS "Found clang-format: ${CLANG_FORMAT_PATH}")
+    message(STATUS "${COLOR_GREEN}Found clang-format: ${CLANG_FORMAT_PATH}${COLOR_RESET}")
 
     file(GLOB_RECURSE CLANG_FORMAT_SRC CONFIGURE_DEPENDS
         src/*.h
@@ -39,27 +61,27 @@ if(USE_CLANG_FORMAT_CHECK)
 
     add_custom_target(clang-format-fix
         COMMAND
-            ${CLANG_FORMAT_PATH} -style=file -i ${CLANG_FORMAT_SRC}
+        ${CLANG_FORMAT_PATH} -style=file -i ${CLANG_FORMAT_SRC}
         WORKING_DIRECTORY
-            ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}
         COMMENT
-            "Formatting ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
+        "Formatting ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
     )
 
     add_custom_target(clang-format
         COMMAND
-            python3.10 run-clang-format.py --clang-format-executable=${CLANG_FORMAT_PATH} --style=file ${CLANG_FORMAT_SRC}
+        python3.10 run-clang-format.py --clang-format-executable=${CLANG_FORMAT_PATH} --style=file ${CLANG_FORMAT_SRC}
         WORKING_DIRECTORY
-            ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}
         COMMENT
-            "Checking format ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
+        "Checking format ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
     )
     add_dependencies(${HOMEWORK1} clang-format)
 endif()
 
 if(USE_CLANG_FORMAT_FIX)
     find_program(CLANG_FORMAT_PATH NAMES clang-format-21 REQUIRED)
-    message(STATUS "Found clang-format: ${CLANG_FORMAT_PATH}")
+    message(STATUS "${COLOR_GREEN}Found clang-format: ${CLANG_FORMAT_PATH}${COLOR_RESET}")
 
     file(GLOB_RECURSE CLANG_FORMAT_SRC CONFIGURE_DEPENDS
         src/*.h
@@ -69,11 +91,11 @@ if(USE_CLANG_FORMAT_FIX)
 
     add_custom_target(clang-format-fix
         COMMAND
-            ${CLANG_FORMAT_PATH} -style=file -i ${CLANG_FORMAT_SRC}
+        ${CLANG_FORMAT_PATH} -style=file -i ${CLANG_FORMAT_SRC}
         WORKING_DIRECTORY
-            ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}
         COMMENT
-            "Formatting ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
+        "Formatting ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
     )
 
     add_dependencies(${HOMEWORK1} clang-format-fix)
@@ -87,19 +109,30 @@ if(USE_CLANG_TIDY)
         src/*.cpp
         src/*.hpp
     )
-    message(STATUS "Found clang-tidy: ${CLANG_TIDY_PATH}")
+    message(STATUS "${COLOR_GREEN}Found clang-tidy: ${CLANG_TIDY_PATH}${COLOR_RESET}")
     set(CLANG_TIDY_COMMAND ${CLANG_TIDY_PATH} "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy" ${CLANG_FORMAT_SRC})
-    message(STATUS "Clang tidy command: ${CLANG_TIDY_COMMAND}")
+    message(STATUS "${COLOR_GREEN}Clang tidy command: ${CLANG_TIDY_COMMAND}${COLOR_RESET}")
     add_custom_target(
         clang-tidy-check
         COMMAND
-            ${CLANG_TIDY_COMMAND}
+        ${CLANG_TIDY_COMMAND}
         WORKING_DIRECTORY
-            ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}
         COMMENT
-            "Tidy ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
+        "Tidy ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
     )
     add_dependencies(${HOMEWORK1} clang-tidy-check)
     set_target_properties(
         ${HOMEWORK1} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 endif()
+
+
+include(GNUInstallDirs)
+
+install(TARGETS ${HOMEWORK1}
+    EXPORT ${HOMEWORK1}Targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)

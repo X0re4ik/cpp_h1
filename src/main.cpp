@@ -1,4 +1,5 @@
 #include "h1.hpp"
+#include "task.hpp"
 
 #include <getopt.h>
 
@@ -10,55 +11,6 @@
 
 namespace
 {
-
-bool parseDouble(const char* text, double* out)
-{
-    if ((text == nullptr) || (out == nullptr))
-    {
-        return false;
-    }
-
-    // NOLINTNEXTLINE(misc-const-correctness)
-    char* endPtr = nullptr;
-    errno = 0;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-    const double parsed = strtod(text, &endPtr);
-
-    if (endPtr == text)
-    {
-        // Ни один символ не был распознан как число.
-        return false;
-    }
-    if (*endPtr != '\0')
-    {
-        // После числа остались лишние символы, например "5abc".
-        return false;
-    }
-    if (errno == ERANGE)
-    {
-        // Число не помещается в double.
-        return false;
-    }
-
-    *out = parsed;
-    return true;
-}
-
-//NOLINTNEXTLINE (clang-tidy(bugprone-easily-swappable-parameters)
-bool checkValidValues(bool leftParsed, bool rightParsed,
-                      OperationEnum operation)
-{
-    if (!leftParsed)
-    {
-        return false;
-    }
-    if (!rightParsed && (operation != OperationEnum::FACTORIAL))
-    {
-        return false;
-    }
-    return true;
-}
-
 struct OptionDesc
 {
     option opt;
@@ -67,6 +19,24 @@ struct OptionDesc
 
 void printHelp(const OptionDesc* const optionDesc, int optionDescSize)
 {
+    // NOLINTNEXTLINE (modernize-avoid-c-arrays)
+    const char* examples[] = {
+        "h1 --add       3 5", "h1 --sub       3 5", "h1 --mul       3 5",
+        "h1 --div       3 5", "h1 --factorial 3",   "h1 --power     3 5",
+    };
+    int countExamples = sizeof(examples) / sizeof(examples[0]);
+
+    for (int i = 0; i != countExamples; ++i)
+    {
+        // NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-constant-array-index)
+        const auto* example = examples[i];
+        // NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        printf("%s\n", example);
+    }
+
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    printf("---\n");
+
     // NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i != optionDescSize; ++i)
     {
@@ -120,80 +90,84 @@ void makeTask(int argc, char** argv, Task* task)
 
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
     auto* operation = new OperationEnum{OperationEnum::ADDITION};
-
+    bool isMathOperation = false;
     switch (opt)
     {
         case 'a':
             *operation = OperationEnum::ADDITION;
+            isMathOperation = true;
             break;
         case 's':
             *operation = OperationEnum::SUBTRACTION;
+            isMathOperation = true;
             break;
         case 'm':
             *operation = OperationEnum::MULTIPLICATION;
+            isMathOperation = true;
             break;
         case 'd':
             *operation = OperationEnum::DIVISION;
+            isMathOperation = true;
             break;
         case 'f':
             *operation = OperationEnum::FACTORIAL;
+            isMathOperation = true;
             break;
         case 'p':
             *operation = OperationEnum::POWER;
+            isMathOperation = true;
             break;
         case 'h':
+        case '?':
+        default:
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             printHelp(longOptsWithDesc,
                       sizeof(longOptsWithDesc) / sizeof(longOptsWithDesc[0]));
-            // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-            delete operation;
-            task->status = OperationStatus::HELP_SHOWN;
-            return;
-        case '?':
-            // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-            delete operation;
-            task->status = OperationStatus::ERROR_PARSE_VALUES;
-            return;
-        default:
+            isMathOperation = false;
             break;
     }
 
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    auto* leftValue = new double{0.0};
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    auto* rightValue = new double{0.0};
+    if (!isMathOperation)
+    {
+        return;
+    }
 
-    bool leftParsed = false;
-    bool rightParsed = false;
-
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+    auto leftValue = static_cast<MathDefault_t>(-1);
+    bool isSetLeftValue = false;
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+    auto rightValue = static_cast<MathDefault_t>(-1);
+    bool isSetRightValue = false;
     // Заполнение первого и второго аргументов
     if (optind < argc)
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        leftParsed = parseDouble(argv[optind], leftValue);
+        leftValue = static_cast<MathDefault_t>(atoi(argv[optind]));
+        isSetLeftValue = true;
     }
     if (optind + 1 < argc)
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        rightParsed = parseDouble(argv[optind + 1], rightValue);
+        rightValue = static_cast<MathDefault_t>(atoi(argv[optind + 1]));
+        isSetRightValue = true;
     }
 
-    if (!checkValidValues(leftParsed, rightParsed, *operation))
+    if (!(isSetLeftValue) && !(isSetRightValue))
     {
-        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-        delete leftValue;
-        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-        delete rightValue;
-        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-        delete operation;
-        task->status = OperationStatus::ERROR_PARSE_VALUES;
+        setError(task, "Не заданы входные переменные");
+        return;
+    }
+
+    if (!(isSetRightValue) && (*operation != OperationEnum::FACTORIAL))
+    {
+        setError(task, "Не задан второй параметр");
         return;
     }
 
     task->left = leftValue;
     task->right = rightValue;
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    task->result = new double{0};
+    task->result = static_cast<MathDefault_t>(-1);
     task->operation = operation;
     task->status = OperationStatus::READY;
 }
@@ -239,7 +213,6 @@ void makeCalculate(Task* task)
         }
         default:
         {
-            task->status = OperationStatus::ERROR_UNKNOWN_OPERATION;
             break;
         }
     }
@@ -247,12 +220,6 @@ void makeCalculate(Task* task)
 
 void printResult(const Task* const task)
 {
-    if (task->status == OperationStatus::HELP_SHOWN)
-    {
-        // Текст справки уже выведен внутри printHelp - здесь печатать
-        // больше нечего.
-        return;
-    }
     if (task->status == OperationStatus::NOT_STATE)
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
@@ -262,7 +229,7 @@ void printResult(const Task* const task)
     if (task->status == OperationStatus::OK)
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-        printf("The result of the program: %.2f\n", *task->result);
+        printf("Result: %d\n", task->result);
         return;
     }
 
@@ -270,15 +237,16 @@ void printResult(const Task* const task)
         static_cast<int>(OperationStatus::ERROR))
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-        printf("Program execution error: %s\n",
-               operationStatusToString(task->status));
+        printf("Code: %s\n", operationStatus2Str(task->status));
+        // NOLINTNEXTLINE (cppcoreguidelines-pro-type-vararg, cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+        printf("Error: %s\n", task->errorMessage);
         return;
     }
 }
 
 void applicationRun(int argc, char** argv)
 {
-    auto* task = createTask();
+    struct Task* task = createTask();
     // Основная программа
     makeTask(argc, argv, task);
     makeCalculate(task);
