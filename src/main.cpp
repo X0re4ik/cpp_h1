@@ -85,29 +85,28 @@ void makeTask(int argc, char** argv, Task* task)
         return;
     }
 
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    auto* operation = new OperationEnum{OperationEnum::ADDITION};
+    auto operation = OperationEnum::ADDITION;
 
     switch (opt)
     {
         // NOLINTNEXTLINE(bugprone-branch-clone)
         case 'a':
-            *operation = OperationEnum::ADDITION;
+            operation = OperationEnum::ADDITION;
             break;
         case 's':
-            *operation = OperationEnum::SUBTRACTION;
+            operation = OperationEnum::SUBTRACTION;
             break;
         case 'm':
-            *operation = OperationEnum::MULTIPLICATION;
+            operation = OperationEnum::MULTIPLICATION;
             break;
         case 'd':
-            *operation = OperationEnum::DIVISION;
+            operation = OperationEnum::DIVISION;
             break;
         case 'f':
-            *operation = OperationEnum::FACTORIAL;
+            operation = OperationEnum::FACTORIAL;
             break;
         case 'p':
-            *operation = OperationEnum::POWER;
+            operation = OperationEnum::POWER;
             break;
         case '?':
             // NOLINTNEXTLINE (modernize-avoid-c-arrays, cppcoreguidelines-avoid-c-arrays)
@@ -149,7 +148,7 @@ void makeTask(int argc, char** argv, Task* task)
         return;
     }
 
-    if (!(isSetRightValue) && (*operation != OperationEnum::FACTORIAL))
+    if (!(isSetRightValue) && (operation != OperationEnum::FACTORIAL))
     {
         setError(task, "Не задан второй параметр");
         return;
@@ -170,7 +169,7 @@ void makeCalculate(Task* task)
         return;
     }
 
-    switch (*task->operation)
+    switch (task->operation)
     {
         case OperationEnum::ADDITION:
         {
@@ -220,7 +219,7 @@ void printResult(const Task* const task)
     if (task->status == OperationStatus::OK)
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-        printf("Result: %d\n", task->result);
+        printf("Result: %.2f\n", task->result);
         return;
     }
 
