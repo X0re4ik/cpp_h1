@@ -24,13 +24,10 @@ void printHelp(const OptionDesc* const optionDesc, int optionDescSize)
         "h1 --add       3 5", "h1 --sub       3 5", "h1 --mul       3 5",
         "h1 --div       3 5", "h1 --factorial 3",   "h1 --power     3 5",
     };
-    int countExamples = sizeof(examples) / sizeof(examples[0]);
 
-    for (int i = 0; i != countExamples; ++i)
+    for (const auto* example : examples) // <- range-based for!
     {
-        // NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-constant-array-index)
-        const auto* example = examples[i];
-        // NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        // NOLINTNEXTLINE (cppcoreguidelines-pro-type-vararg)
         printf("%s\n", example);
     }
 
@@ -53,7 +50,7 @@ void printHelp(const OptionDesc* const optionDesc, int optionDescSize)
         }
     }
 }
-
+// NOLINTNEXTLINE(readability-non-const-parameter)
 void makeTask(int argc, char** argv, Task* task)
 {
     task->status = OperationStatus::NOT_STATE;
@@ -90,46 +87,40 @@ void makeTask(int argc, char** argv, Task* task)
 
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
     auto* operation = new OperationEnum{OperationEnum::ADDITION};
-    bool isMathOperation = false;
+
     switch (opt)
     {
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         case 'a':
             *operation = OperationEnum::ADDITION;
-            isMathOperation = true;
             break;
         case 's':
             *operation = OperationEnum::SUBTRACTION;
-            isMathOperation = true;
             break;
         case 'm':
             *operation = OperationEnum::MULTIPLICATION;
-            isMathOperation = true;
             break;
         case 'd':
             *operation = OperationEnum::DIVISION;
-            isMathOperation = true;
             break;
         case 'f':
             *operation = OperationEnum::FACTORIAL;
-            isMathOperation = true;
             break;
         case 'p':
             *operation = OperationEnum::POWER;
-            isMathOperation = true;
             break;
-        case 'h':
         case '?':
-        default:
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+            // NOLINTNEXTLINE (modernize-avoid-c-arrays, cppcoreguidelines-avoid-c-arrays)
             printHelp(longOptsWithDesc,
                       sizeof(longOptsWithDesc) / sizeof(longOptsWithDesc[0]));
-            isMathOperation = false;
-            break;
-    }
-
-    if (!isMathOperation)
-    {
-        return;
+            setError(task, "Неизвестный флаг");
+            return;
+        case 'h':
+        default:
+            // NOLINTNEXTLINE (modernize-avoid-c-arrays, cppcoreguidelines-avoid-c-arrays)
+            printHelp(longOptsWithDesc,
+                      sizeof(longOptsWithDesc) / sizeof(longOptsWithDesc[0]));
+            return;
     }
 
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)

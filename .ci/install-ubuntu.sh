@@ -30,7 +30,7 @@ cd cpp_h1
 # Сборка
 rm -rf build
 cmake -S . -B build -DUSE_CLANG_FORMAT_CHECK=ON -DUSE_CLANG_TIDY=ON
-cmake --build build
+cmake --build build --target install
 
 # Проверка
 chmod -x ./tests/run_tests.sh

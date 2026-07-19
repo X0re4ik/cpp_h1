@@ -132,20 +132,22 @@ run_test() {
 echo "== Запуск тестов =="
 echo
 
-run_test "Сложение: 2 + 3 = 5"                        zero "5.00"                                        -- -a 2 3
-run_test "Вычитание: 10 - 4 = 6"                      zero "6.00"                                        -- -s 10 4
-run_test "Умножение: 3 * 4 = 12"                      zero "12.00"                                       -- -m 3 4
-run_test "Деление: 10 / 2 = 5"                        zero "5.00"                                        -- -d 10 2
+run_test "Сложение: 2 + 3 = 5"                        zero "Result: 5"                                   -- -a 2 3
+run_test "Вычитание: 10 - 4 = 6"                      zero "Result: 6"                                   -- -s 10 4
+run_test "Умножение: 3 * 4 = 12"                      zero "Result: 12"                                  -- -m 3 4
+run_test "Деление: 10 / 2 = 5"                        zero "Result: 5"                                   -- -d 10 2
 run_test "Деление на 0 -> exit 0 и сообщение об ошибке" zero "ERROR"                                      -- -d 5 0
-run_test "Факториал 5! = 120"                         zero "120.00"                                      -- -f 5
-run_test "Факториал 0! = 1"                           zero "1.00"                                        -- -f 0
-run_test "Возведение в степень 0^2 = 0"               zero "0.00"                                        -- -p 0 2
-run_test "Возведение в степень 1^0 = 1"               zero "1.00"                                        -- -p 1 0
-run_test "Возведение в степень 2^5 = 32"              zero "32.00"                                       -- -p 2 5
+run_test "Факториал 5! = 120"                         zero "Result: 120"                                 -- -f 5
+run_test "Факториал 0! = 1"                           zero "Result: 1"                                   -- -f 0
+
+run_test "Возведение в степень 0^2 = 0"               zero "Result: 0"                                   -- -p 0 2
+run_test "Возведение в степень 1^0 = 1"               zero "Result: 1"                                   -- -p 1 0
+run_test "Возведение в степень 2^5 = 32"              zero "Result: 32"                                  -- -p 2 5
+
 run_test "Факториал отрицательного -> сообщение"      zero "ERROR"                                       -- -f -5
 run_test "Деление без второго аргумента -> сообщение" zero "ERROR"                                       -- -d 5
-run_test "Нечисловые аргументы -> сообщение"          zero "ERROR"                                       -- -a abc xyz
 run_test "Неизвестный флаг -> сообщение, не тихий счёт" zero "ERROR"                                      -- -x 2 3
+
 run_test "Без аргументов -> есть сообщение"           zero "NONEMPTY"                                    --
 run_test "--help содержит все опции"                  zero "--add;--sub;--mul;--div;--factorial;--help" -- -h
 

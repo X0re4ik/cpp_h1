@@ -41,7 +41,7 @@ include(FetchContent)
 FetchContent_Declare(
     cpp_h1_lib
     GIT_REPOSITORY https://github.com/X0re4ik/cpp_h1_lib.git
-    GIT_TAG v1.1.5
+    GIT_TAG v1.1.7
 )
 
 FetchContent_MakeAvailable(cpp_h1_lib)
@@ -110,7 +110,7 @@ if(USE_CLANG_TIDY)
         src/*.hpp
     )
     message(STATUS "${COLOR_GREEN}Found clang-tidy: ${CLANG_TIDY_PATH}${COLOR_RESET}")
-    set(CLANG_TIDY_COMMAND ${CLANG_TIDY_PATH} "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy" ${CLANG_FORMAT_SRC})
+    set(CLANG_TIDY_COMMAND ${CLANG_TIDY_PATH} "-p=${CMAKE_BINARY_DIR}" "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy" ${CLANG_FORMAT_SRC})
     message(STATUS "${COLOR_GREEN}Clang tidy command: ${CLANG_TIDY_COMMAND}${COLOR_RESET}")
     add_custom_target(
         clang-tidy-check
