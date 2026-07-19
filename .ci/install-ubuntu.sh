@@ -23,7 +23,7 @@ python3.10 --version
 
 
 # Скачивание
-git clone https://github.com/X0re4ik/cpp_h1.git
+git clone -b master https://github.com/X0re4ik/cpp_h1.git
 cd cpp_h1
 
 
