@@ -41,7 +41,7 @@ include(FetchContent)
 FetchContent_Declare(
     cpp_h1_lib
     GIT_REPOSITORY https://github.com/X0re4ik/cpp_h1_lib.git
-    GIT_TAG v1.1.10-header-only
+    GIT_TAG v1.1.11-header-only
 )
 
 FetchContent_MakeAvailable(cpp_h1_lib)
