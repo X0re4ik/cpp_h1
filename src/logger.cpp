@@ -119,7 +119,7 @@ ProjectLoggerFactory::PtrProjectLogger ProjectLoggerFactory::createInstance()
     const std::size_t maxSize = mgByte * 1024 * 1024;
     const std::size_t maxFiles = 10;
     sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-        "rotating_file_sink_mt_log", maxSize, maxFiles));
+        "logs/rotating_file_sink_mt_log", maxSize, maxFiles));
 
     // Создание логгера
     auto loggerPtr = std::make_shared<spdlog::logger>(

@@ -1,154 +1,99 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(HOMEWORK1 VERSION 1.0 LANGUAGES CXX)
-
-string(ASCII 27 Esc)
-set(COLOR_RESET "${Esc}[0m")
-set(COLOR_RED "${Esc}[31m")
-set(COLOR_GREEN "${Esc}[32m")
-set(COLOR_YELLOW "${Esc}[33m")
-set(COLOR_BLUE "${Esc}[34m")
+project(HOMEWORK2 VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-SET(HOMEWORK1 h1)
+set(HOMEWORK2 h1)
+set(MAIN_CMD "cmd/main.cpp")
 
-add_executable(${HOMEWORK1}
-    src/main.cpp
+
+
+option(BUILD_TESTS "Build tests" OFF)
+message(STATUS "[INFO] Build Test: ${BUILD_TESTS}")
+message(STATUS "[INFO] Get all translation units excludes tests")
+
+SET(SOURCES "src/logger.cpp")
+
+message(DEBUG "[DEBUG] Translation Units: ${SOURCES}")
+
+message(STATUS "[INFO] Create objects files")
+add_executable(${HOMEWORK2} ${SOURCES} ${MAIN_CMD})
+
+message(STATUS "[INFO] Set include directory base is 'include'")
+target_include_directories(${HOMEWORK2}
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_compile_options(${HOMEWORK1}
+set(COMPILE_OPTIONS "-g -fpermissive -Wall -Wextra -Werror -Wpedantic")
+message(STATUS "[INFO] Set compile options: ${COMPILE_OPTIONS}")
+target_compile_options(${HOMEWORK2}
     PRIVATE
-    -g
-    -fpermissive
-    -Wall
-    -Wextra
-    -Werror
-    -Wpedantic
+    -g -fpermissive -Wall -Wextra -Werror -Wpedantic
 )
 
-set_target_properties(${HOMEWORK1}
+set(CPP_STANDARD 20)
+message(STATUS "[INFO] Standard Version: C++${CPP_STANDARD}")
+set_target_properties(${HOMEWORK2}
     PROPERTIES
-    CXX_STANDARD 17
+    CXX_STANDARD ${CPP_STANDARD}
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
 
-
+# ==== FetchContent ==== 
+message(STATUS "[INFO] Load external dependence with FetchContent")
 include(FetchContent)
-
-FetchContent_Declare(
-    cpp_h1_lib
-    GIT_REPOSITORY https://github.com/X0re4ik/cpp_h1_lib.git
-    GIT_TAG v1.1.11-header-only
-)
-
-FetchContent_MakeAvailable(cpp_h1_lib)
-
-target_link_libraries(${HOMEWORK1} PRIVATE H1)
-
-
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG v1.x
 )
+message(DEBUG "spdlog_POPULATED=${spdlog_POPULATED}")
+FetchContent_MakeAvailable(spdlog)
+message(STATUS "[INFO] spdlog 🟢")
 
-# Изучить, что здесь происходит
-FetchContent_GetProperties(spdlog)
-if (NOT spdlog_POPULATED)
-    FetchContent_Populate(spdlog)
-    add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
+if(BUILD_TESTS)
+    FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+    )
+    FetchContent_MakeAvailable(googletest)
+    message(DEBUG "googletest_POPULATED=${googletest_POPULATED}")
+    message(STATUS "[INFO] googletest 🟢")
 endif()
+# ==== END ====
 
-target_link_libraries(${HOMEWORK1} PRIVATE spdlog)
-
-
-if(USE_CLANG_FORMAT_CHECK)
-    find_program(CLANG_FORMAT_PATH NAMES clang-format-21 REQUIRED)
-    message(STATUS "${COLOR_GREEN}Found clang-format: ${CLANG_FORMAT_PATH}${COLOR_RESET}")
-
-    file(GLOB_RECURSE CLANG_FORMAT_SRC CONFIGURE_DEPENDS
-        src/*.h
-        src/*.cpp
-        src/*.hpp
-    )
-
-    add_custom_target(clang-format-fix
-        COMMAND
-        ${CLANG_FORMAT_PATH} -style=file -i ${CLANG_FORMAT_SRC}
-        WORKING_DIRECTORY
-        ${CMAKE_SOURCE_DIR}
-        COMMENT
-        "Formatting ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
-    )
-
-    add_custom_target(clang-format
-        COMMAND
-        python3.10 run-clang-format.py --clang-format-executable=${CLANG_FORMAT_PATH} --style=file ${CLANG_FORMAT_SRC}
-        WORKING_DIRECTORY
-        ${CMAKE_SOURCE_DIR}
-        COMMENT
-        "Checking format ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
-    )
-    add_dependencies(${HOMEWORK1} clang-format)
-endif()
-
-if(USE_CLANG_FORMAT_FIX)
-    find_program(CLANG_FORMAT_PATH NAMES clang-format-21 REQUIRED)
-    message(STATUS "${COLOR_GREEN}Found clang-format: ${CLANG_FORMAT_PATH}${COLOR_RESET}")
-
-    file(GLOB_RECURSE CLANG_FORMAT_SRC CONFIGURE_DEPENDS
-        src/*.h
-        src/*.cpp
-        src/*.hpp
-    )
-
-    add_custom_target(clang-format-fix
-        COMMAND
-        ${CLANG_FORMAT_PATH} -style=file -i ${CLANG_FORMAT_SRC}
-        WORKING_DIRECTORY
-        ${CMAKE_SOURCE_DIR}
-        COMMENT
-        "Formatting ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
-    )
-
-    add_dependencies(${HOMEWORK1} clang-format-fix)
-endif()
-
-# 
-if(USE_CLANG_TIDY)
-    find_program(CLANG_TIDY_PATH NAMES clang-tidy-21 REQUIRED)
-    file(GLOB_RECURSE CLANG_FORMAT_SRC CONFIGURE_DEPENDS
-        src/*.h
-        src/*.cpp
-        src/*.hpp
-    )
-    message(STATUS "${COLOR_GREEN}Found clang-tidy: ${CLANG_TIDY_PATH}${COLOR_RESET}")
-    set(CLANG_TIDY_COMMAND ${CLANG_TIDY_PATH} "-p=${CMAKE_BINARY_DIR}" "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy" ${CLANG_FORMAT_SRC})
-    message(STATUS "${COLOR_GREEN}Clang tidy command: ${CLANG_TIDY_COMMAND}${COLOR_RESET}")
-    add_custom_target(
-        clang-tidy-check
-        COMMAND
-        ${CLANG_TIDY_COMMAND}
-        WORKING_DIRECTORY
-        ${CMAKE_SOURCE_DIR}
-        COMMENT
-        "Tidy ${HOMEWORK1} with ${CLANG_FORMAT_PATH} ..."
-    )
-    add_dependencies(${HOMEWORK1} clang-tidy-check)
-    set_target_properties(
-        ${HOMEWORK1} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
-endif()
-
-
-include(GNUInstallDirs)
-
-install(TARGETS ${HOMEWORK1}
-    EXPORT ${HOMEWORK1}Targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+# ==== target_link_libraries ====
+set(LINKED_LIBRARIES spdlog)
+message(STATUS "Link libraries: ${LINKED_LIBRARIES}")
+target_link_libraries(${HOMEWORK2}
+    PRIVATE
+    ${LINKED_LIBRARIES}
 )
+
+if(BUILD_TESTS)
+    enable_testing()
+    set(TEST_EXECUTABLE ${HOMEWORK2}_test)
+    add_executable(
+        ${TEST_EXECUTABLE}
+        ${SOURCES}
+        "src/test_logger.cpp"
+    )
+    target_include_directories(${TEST_EXECUTABLE}
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+    list(APPEND LINKED_LIBRARIES GTest::gtest_main)
+    target_link_libraries(${TEST_EXECUTABLE}
+        PRIVATE
+        ${LINKED_LIBRARIES}
+    )
+    include(GoogleTest)
+    gtest_discover_tests(${TEST_EXECUTABLE})
+endif()
+
