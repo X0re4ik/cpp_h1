@@ -49,6 +49,22 @@ FetchContent_MakeAvailable(cpp_h1_lib)
 target_link_libraries(${HOMEWORK1} PRIVATE H1)
 
 
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.x
+)
+
+# Изучить, что здесь происходит
+FetchContent_GetProperties(spdlog)
+if (NOT spdlog_POPULATED)
+    FetchContent_Populate(spdlog)
+    add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
+endif()
+
+target_link_libraries(${HOMEWORK1} PRIVATE spdlog)
+
+
 if(USE_CLANG_FORMAT_CHECK)
     find_program(CLANG_FORMAT_PATH NAMES clang-format-21 REQUIRED)
     message(STATUS "${COLOR_GREEN}Found clang-format: ${CLANG_FORMAT_PATH}${COLOR_RESET}")
