@@ -14,7 +14,7 @@ option(BUILD_TESTS "Build tests" OFF)
 message(STATUS "[INFO] Build Test: ${BUILD_TESTS}")
 message(STATUS "[INFO] Get all translation units excludes tests")
 
-SET(SOURCES "src/logger.cpp")
+SET(SOURCES "src/logger/logger.cpp")
 
 message(DEBUG "[DEBUG] Translation Units: ${SOURCES}")
 
