@@ -1,8 +1,8 @@
 #ifndef H_H1_LOGGER_EXCEPTIONS_bcefa705229ee883c5c6b6c46a08323d
 #define H_H1_LOGGER_EXCEPTIONS_bcefa705229ee883c5c6b6c46a08323d
 
+#include "./code_location.hpp"
 #include "h1/common.hpp"
-#include "h1/logger/code_location.hpp"
 
 namespace h1::log
 {

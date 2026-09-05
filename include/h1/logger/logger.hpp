@@ -19,25 +19,30 @@
 #include "./di.hpp"
 #include "h1/common.hpp"
 
-#define H1_LOG__INTERNAL_INIT_CONFIG h1::log::getLoggerConfig()
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define H1_LOG_INTERNAL_INIT_CONFIG h1::log::getLoggerConfig()
 
-#define H1_LOG__INTERNAL_CODE_LOCATION                                         \
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define H1_LOG_INTERNAL_CODE_LOCATION                                          \
     h1::log::CodeLocation                                                      \
     {                                                                          \
         static_cast<int>(__LINE__), static_cast<const char*>(__FILE__),        \
             static_cast<const char*>(__FUNCTION__)                             \
     }
-
-#define H1_LOG__INTERNAL_PROJECT_LOG(level, msg)                               \
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define H1_LOG_INTERNAL_PROJECT_LOG(level, msg)                                \
     do                                                                         \
     {                                                                          \
-        h1::log::getProjectLogger(H1_LOG__INTERNAL_INIT_CONFIG)                \
-            ->level(msg, H1_LOG__INTERNAL_CODE_LOCATION);                      \
+        h1::log::getProjectLogger(H1_LOG_INTERNAL_INIT_CONFIG)                 \
+            ->level(msg, H1_LOG_INTERNAL_CODE_LOCATION);                       \
     } while (0);
-
-#define H1_LOG_INFO(msg) H1_LOG__INTERNAL_PROJECT_LOG(info, msg)
-#define H1_LOG_DEBUG(msg) H1_LOG__INTERNAL_PROJECT_LOG(debug, msg)
-#define H1_LOG_WARN(msg) H1_LOG__INTERNAL_PROJECT_LOG(warn, msg)
-#define H1_LOG_ERROR(msg) H1_LOG__INTERNAL_PROJECT_LOG(error, msg)
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define H1_LOG_INFO(msg) H1_LOG_INTERNAL_PROJECT_LOG(info, msg)
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define H1_LOG_DEBUG(msg) H1_LOG_INTERNAL_PROJECT_LOG(debug, msg)
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define H1_LOG_WARN(msg) H1_LOG_INTERNAL_PROJECT_LOG(warn, msg)
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define H1_LOG_ERROR(msg) H1_LOG_INTERNAL_PROJECT_LOG(error, msg)
 
 #endif

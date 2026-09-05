@@ -1,18 +1,11 @@
 
+#include "h1/application.hpp"
+#include "h1/common.hpp"
 #include "h1/logger/logger.hpp"
 
-void initProjectLogger()
+int main(int argc, char* argv[])
 {
-
-    auto logger =
-        h1::log::LoggerConfig().addConsoleLog().setLogName("IUCH").setPattern(
-            "[%#] %v");
-    h1::log::initLoggerConfig(logger);
-}
-
-int main(int /*argc*/, char** /*argv*/)
-{
-    initProjectLogger();
-    H1_LOG_INFO("Init Project Logger1");
-    return 0;
+    auto app = h1::Application();
+    auto code = app.run(argc, argv);
+    return code;
 }

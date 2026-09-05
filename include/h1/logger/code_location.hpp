@@ -2,7 +2,6 @@
 #define H_H1_LOGGER_CODE_LOCATION_cf398b047c4ad87191d20047e689c446
 
 #include "./enums.hpp"
-#include "./exceptions.hpp"
 #include "h1/common.hpp"
 
 #include <memory>

@@ -3,14 +3,7 @@
 #define H_H1_LOGGER_LOG_SINK_b0027471171f14722347b439829dab05
 
 #include "./code_location.hpp"
-#include "./enums.hpp"
-#include "./exceptions.hpp"
 #include "h1/common.hpp"
-
-#include <memory>
-#include <optional>
-#include <source_location>
-#include <string>
 
 namespace h1::log
 {

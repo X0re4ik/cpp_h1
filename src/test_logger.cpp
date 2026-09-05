@@ -60,8 +60,7 @@ TEST(TestLogger, WorkLoggerInSeveralThreads)
     threads.reserve(countThreads + 2);
     for (int i = 0; i < countThreads; ++i)
     {
-        threads.emplace_back(
-            std::thread(runLoggerInThread, symbols.at(i), countCalls));
+        threads.emplace_back(runLoggerInThread, symbols.at(i), countCalls);
     }
 
     // Act
@@ -87,7 +86,7 @@ std::vector<std::string> splitString(const std::string& str,
 
     while ((end = str.find(delimiter, start)) != std::string::npos)
     {
-        std::string token = str.substr(start, end - start);
+        const std::string token = str.substr(start, end - start);
         if (!token.empty())
         {
             tokens.push_back(token);
@@ -96,7 +95,7 @@ std::vector<std::string> splitString(const std::string& str,
     }
 
     // Последний кусок
-    std::string last = str.substr(start);
+    const std::string last = str.substr(start);
     if (!last.empty())
     {
         tokens.push_back(last);
@@ -131,8 +130,8 @@ TEST(TestLogger, DiffLineNumberInOutput)
 
     for (int i = 0; i < countLines; i++)
     {
-        auto lineNumber = linesNumbers.at(i);
-        auto lineValueInLog = strLines.at(i);
+        const auto& lineNumber = linesNumbers.at(i);
+        const auto& lineValueInLog = strLines.at(i);
 
         auto pattern = "[" + std::to_string(lineNumber) + "]";
         auto isValid = lineValueInLog.find(pattern) != std::string::npos;
