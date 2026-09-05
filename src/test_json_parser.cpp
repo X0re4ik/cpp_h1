@@ -132,7 +132,7 @@ TEST_P(InvalidJSONTest, TestCaseParseInvalidJSON)
     const auto& testCase = GetParam();
 
     // Act + Assert
-    ASSERT_THROW(CalculatorParseJson::parse(testCase.invalidJSONInput),
+    ASSERT_THROW((void)CalculatorParseJson::parse(testCase.invalidJSONInput),
                  JsonParseException);
 }
 

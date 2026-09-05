@@ -24,7 +24,7 @@ python3.10 --version
 
 
 # Скачивание
-sudo git clone -b master https://github.com/X0re4ik/cpp_h1.git
+sudo git clone -b "feature/C++-homework02" https://github.com/X0re4ik/cpp_h1.git
 cd cpp_h1
 
 
