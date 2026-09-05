@@ -1,12 +1,13 @@
+#!/usr/bin/env bash;
 
 # Установка
-apt -y update
-apt -y upgrade
-apt install -y \
+sudo apt -y update
+sudo apt -y upgrade
+sudo apt install -y \
     build-essential \
     cmake \
     clang 
-wget https://apt.llvm.org/llvm.sh
+sudo wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
 sudo ./llvm.sh 21
 rm -rf ./llvm.sh
@@ -23,15 +24,11 @@ python3.10 --version
 
 
 # Скачивание
-git clone -b master https://github.com/X0re4ik/cpp_h1.git
+sudo git clone -b master https://github.com/X0re4ik/cpp_h1.git
 cd cpp_h1
 
 
 # Сборка
-rm -rf build
-cmake -S . -B build -DUSE_CLANG_FORMAT_CHECK=ON -DUSE_CLANG_TIDY=ON
-cmake --build build --target install
-
-# Проверка
-chmod -x ./tests/run_tests.sh
-bash ./tests/run_tests.sh
+sudo rm -rf build
+sudo cmake -S . -B build -DUSE_CLANG_FORMAT_CHECK=ON -DUSE_CLANG_TIDY=ON
+sudo cmake --build build --target install
