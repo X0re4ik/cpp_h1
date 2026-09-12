@@ -9,6 +9,8 @@ misc-*,
 -misc-include-cleaner,
 modernize-*,
 -modernize-use-trailing-return-type,
+-cppcoreguidelines-avoid-const-or-ref-data-members,
+-cppcoreguidelines-avoid-do-while,
 performance-*,
 portability-*,
 readability-*,
@@ -29,3 +31,4 @@ CheckOptions:
   - { key: readability-identifier-naming.VariableCase,  value: camelBack }
   - { key: readability-identifier-naming.FunctionCase,  value: camelBack }
   - { key: readability-identifier-naming.ParameterCase, value: camelBack }
+  - { key: cppcoreguidelines-macro-usage.IgnoreMacros, value: 'H1_LOG_INTERNAL_INIT_CONFIG;H1_LOG_INTERNAL_CODE_LOCATION;H1_LOG_INTERNAL_PROJECT_LOG;H1_LOG_INFO;H1_LOG_DEBUG;H1_LOG_WARN;H1_LOG_ERROR' }

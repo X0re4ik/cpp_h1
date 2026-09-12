@@ -44,3 +44,12 @@
 /build
 .vscode
 .cache
+logs/*
+
+.codex/
+.opencode/
+.agents/
+.vscode/
+build*
+logs
+log
