@@ -1,7 +1,10 @@
 #include "h1/application.hpp"
 
 #include "h1/common.hpp"
+#include "h1/db/db.hpp"
+#include "h1/db/manager.hpp"
 #include "h1/exceptions.hpp"
+#include "h1/local_cache/local_cache.hpp"
 #include "h1/logger/logger.hpp"
 
 #include <exception>
@@ -27,6 +30,23 @@ void initLogger(bool verbose)
                          .setPattern("[%H:%M:%S.%f] [%^%l%$] [%t] [%s:%#] %v")
                          .setLogLevel(logLevel)
                          .setLogName(h1::projectName));
+}
+
+void warmUpCache(h1::lcache::CalcLocalCache& localCache,
+                 h1::db::DBManager& dbManager)
+{
+    const int limitDBData = 100;
+    auto tasks = dbManager.getData(limitDBData);
+
+    for (const auto& task : tasks)
+    {
+        auto opTask = h1::lcache::OpTask{
+            .left = task.left,
+            .right = task.right,
+            .operation = task.operation,
+        };
+        localCache.add(opTask, task);
+    }
 }
 
 h1::calc::CalculatorTypeEnum char2CalculatorType(const String& operationChar)
@@ -74,17 +94,25 @@ void prettyPrintResult(std::ostream& oStream, double result,
 }
 
 } // namespace
-Application::Application(std::ostream& oStream, std::ostream& eStream) :
-    oStream_(oStream), eStream_(eStream), argParse_(projectName, projectVersion)
+Application::Application(h1::db::DBManager& dbManager,
+                         h1::lcache::CalcLocalCache& localCache,
+                         std::ostream& oStream, std::ostream& eStream) :
+    oStream_(oStream),
+    eStream_(eStream), argParse_(projectName, projectVersion),
+    dbManager_(dbManager), localCache_(localCache)
 {}
 int Application::run(int argc, char** argv)
 {
     try
     {
-        auto value = argParse_.parse(argc, argv);
 
+        
+        auto value = argParse_.parse(argc, argv);        
         initLogger(value.verbose);
 
+        warmUpCache(localCache_, dbManager_);
+        H1_LOG_INFO("Кэш успешно прогрет");
+        
         H1_LOG_INFO("Аргументы командной строки обработаны");
 
         auto mathOperation =

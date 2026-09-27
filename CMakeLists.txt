@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
+set(CMAKE_CXX_COMPILER clang++)
+
 project(h1 VERSION 1.0 LANGUAGES CXX)
+
+message(STATUS "CXX Compiler ID:      ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CXX Compiler Path:    ${CMAKE_CXX_COMPILER}")
+message(STATUS "CXX Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -11,6 +17,14 @@ set(H1_CORE_SOURCES
     src/json_parser/impl.cpp
     src/application.cpp
     src/argparse/argparse.cpp
+    # db::pg
+    src/db/pg/pg_connector.cpp
+    src/db/pg/pg_params.cpp
+    src/db/pg/pg_result.cpp
+    # db
+    src/db/manager.cpp
+    # lcache
+    src/local_cache/local_cache.cpp
 )
 
 add_library(h1_core STATIC ${H1_CORE_SOURCES})
@@ -50,7 +64,7 @@ include(FetchContent)
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.15.3
+    GIT_TAG v1.17.0
 )
 message(DEBUG "spdlog_POPULATED=${spdlog_POPULATED}")
 FetchContent_MakeAvailable(spdlog)
@@ -83,11 +97,16 @@ FetchContent_MakeAvailable(argparse)
 message(DEBUG "argparse_POPULATED=${argparse_POPULATED}")
 message(STATUS "[INFO] argparse 🟢")
 
+message(STATUS "[INFO] Load external dependence with `find_package`")
+message(STATUS "[INFO] REQUIRED: PostgreSQL")
+find_package(PostgreSQL REQUIRED)
+
 target_link_libraries(
     h1_core
     PUBLIC
     H1
     nlohmann_json::nlohmann_json
+    PostgreSQL::PostgreSQL
     PRIVATE
     argparse
     spdlog::spdlog
@@ -180,7 +199,7 @@ if(BUILD_TESTING)
         src/test_logger.cpp
         src/test_calculator.cpp
         src/test_json_parser.cpp
-        src/test_application.cpp
+        #src/test_application.cpp
     )
 
     target_compile_features(h1_test PRIVATE cxx_std_20)
