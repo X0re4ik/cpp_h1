@@ -5,10 +5,10 @@
 #include "./pg_exceptions.hpp"
 #include "h1/common.hpp"
 
-#include <concepts>
-#include <cstdint>
 #include <libpq-fe.h>
 
+#include <concepts>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -20,7 +20,7 @@ template <typename T>
 class ConvertPGCharTo
 {
   public:
-    static int convert(const char* data);
+    static T convert(const char* data);
 };
 
 template <typename T>

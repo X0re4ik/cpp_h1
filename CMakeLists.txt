@@ -16,6 +16,7 @@ set(H1_CORE_SOURCES
     src/calculator/di.cpp
     src/json_parser/impl.cpp
     src/application.cpp
+    src/calculation/service.cpp
     src/argparse/argparse.cpp
     # db::pg
     src/db/pg/pg_connector.cpp
@@ -25,6 +26,8 @@ set(H1_CORE_SOURCES
     src/db/manager.cpp
     # lcache
     src/local_cache/local_cache.cpp
+    # config
+    src/config/config.cpp
 )
 
 add_library(h1_core STATIC ${H1_CORE_SOURCES})
@@ -96,6 +99,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(argparse)
 message(DEBUG "argparse_POPULATED=${argparse_POPULATED}")
 message(STATUS "[INFO] argparse 🟢")
+FetchContent_Declare(
+    libenvpp
+    GIT_REPOSITORY https://github.com/ph3at/libenvpp.git
+    GIT_TAG v1.5.3
+)
+FetchContent_MakeAvailable(libenvpp)
+message(DEBUG "libenvpp_POPULATED=${argparse_POPULATED}")
+message(STATUS "[INFO] libenvpp 🟢")
 
 message(STATUS "[INFO] Load external dependence with `find_package`")
 message(STATUS "[INFO] REQUIRED: PostgreSQL")
@@ -107,6 +118,7 @@ target_link_libraries(
     H1
     nlohmann_json::nlohmann_json
     PostgreSQL::PostgreSQL
+    libenvpp
     PRIVATE
     argparse
     spdlog::spdlog
@@ -117,6 +129,7 @@ target_link_libraries(
     PRIVATE
     h1_core
 )
+
 
 message(STATUS "Use Clang Format Fix: ${USE_CLANG_FORMAT_FIX}")
 if(USE_CLANG_FORMAT_FIX)

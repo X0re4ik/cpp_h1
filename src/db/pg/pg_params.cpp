@@ -1,5 +1,8 @@
 #include "h1/db/pg/pg_params.hpp"
 
+#include <cstdio>
+#include <optional>
+
 namespace h1::db::pg
 {
 
@@ -12,7 +15,7 @@ PGParams::PGParams()
 
 PGParams& PGParams::addNull()
 {
-    values_.emplace_back("NULL");
+    values_.emplace_back(std::nullopt);
     return *this;
 }
 
@@ -32,7 +35,8 @@ void PGParams::finalize()
     ptrs_.reserve(values_.size());
     for (auto& variable : values_)
     {
-        ptrs_.push_back(variable.c_str());
+        ptrs_.emplace_back(variable.has_value() ? variable->c_str()
+                                                  : nullptr);
     }
 }
 

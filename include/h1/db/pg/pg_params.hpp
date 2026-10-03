@@ -5,6 +5,7 @@
 #include "h1/common.hpp"
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace h1::db::pg
@@ -34,7 +35,7 @@ class PGParams
     static String convert(bool value);
     static String convert(const String& value);
 
-    std::vector<String> values_;
+    std::vector<std::optional<String>> values_;
     std::vector<const char*> ptrs_;
 };
 

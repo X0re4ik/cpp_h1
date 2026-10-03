@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #ifndef H_H1_LOCAL_CACHE_b7d089624a98ddc87ca90b6d807d9627
 #define H_H1_LOCAL_CACHE_b7d089624a98ddc87ca90b6d807d9627
 
@@ -56,6 +57,9 @@ class CalcLocalCache
   private:
     std::unordered_map<OpTask, Result_t, OpTask::HashMethod> local_;
 };
+
+using CalcLocalCachePtr = std::unique_ptr<CalcLocalCache>;
+CalcLocalCachePtr initCalcLocalCacheManager();
 
 } // namespace h1::lcache
 

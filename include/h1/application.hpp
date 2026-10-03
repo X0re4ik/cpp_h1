@@ -2,6 +2,7 @@
 #define H_H1_APPLICATION_f5eea57a1b697c744fe69c6cd94de14c
 
 #include "h1/argparse/argparse.hpp"
+#include "h1/calculation/service.hpp"
 #include "h1/calculator/calculator.hpp"
 #include "h1/db/manager.hpp"
 #include "h1/json_parser/impl.hpp"

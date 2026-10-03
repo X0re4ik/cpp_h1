@@ -37,6 +37,9 @@ struct CalculationResultEntity
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     std::optional<String> errorMessage;
 
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+    bool isSuccess;
+
     H1_NODISCARD String toString() const H1_EXCEPT
     {
         std::string resultStr =
@@ -54,6 +57,7 @@ struct CalculationResultEntity
                 << ".operation=" << operation << ";"
                 << ".statusCode=" << statusCode << ";"
                 << ".errorMessage=" << errorMessageStr << ";"
+                << ".isSuccess=" << isSuccess << ";"
                 << "}";
 
         return sstream.str();

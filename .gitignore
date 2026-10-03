@@ -53,3 +53,5 @@ logs/*
 build*
 logs
 log
+
+.env

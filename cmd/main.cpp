@@ -7,14 +7,10 @@
 
 int main(int argc, char* argv[])
 {
-    auto pgConnPtr = h1::db::pg::makePGConnector(
-        "host=localhost port=5432 dbname=mydb user=myuser password=mypassword");
-    auto dbManager = h1::db::DBManager(*pgConnPtr);
-    dbManager.initSchema();
-    dbManager.createTable();
-    auto localCache = h1::lcache::CalcLocalCache();
+    auto dbManager = h1::db::initDataBaseManager();
+    auto localCache = h1::lcache::initCalcLocalCacheManager();
 
-    auto app = h1::Application(dbManager, localCache);
+    auto app = h1::Application(*dbManager, *localCache);
     auto code = app.run(argc, argv);
     return code;
 }

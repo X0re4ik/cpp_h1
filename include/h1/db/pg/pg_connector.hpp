@@ -38,6 +38,7 @@ class PGConnector
 using PGConnectorPtr = std::unique_ptr<PGConnector>;
 
 PGConnectorPtr makePGConnector(const String& pgConnection);
+PGConnectorPtr makePGConnector();
 
 } // namespace h1::db::pg
 

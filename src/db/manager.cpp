@@ -1,16 +1,21 @@
 #include "h1/db/manager.hpp"
 
+#include "h1/db/pg/pg_connector.hpp"
 #include "h1/db/pg/pg_params.hpp"
+
+#include <iostream>
+#include <memory>
 
 namespace h1::db
 {
 
-DBManager::DBManager(pg::PGConnector& pgConnect) : pgConnect_(pgConnect)
+DBManager::DBManager(pg::PGConnectorPtr pgConnect) :
+    pgConnect_(std::move(pgConnect))
 {}
 
 void DBManager::initSchema()
 {
-    pgConnect_.executeOrError("CREATE SCHEMA IF NOT EXISTS h1;");
+    pgConnect_->executeOrError("CREATE SCHEMA IF NOT EXISTS h1;");
 }
 
 void DBManager::createTable()
@@ -20,23 +25,24 @@ void DBManager::createTable()
         CREATE TABLE IF NOT EXISTS h1.calculation
         (
             id        BIGINT  GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-            "left"    INTEGER NOT NULL,
-            "right"   INTEGER NOT NULL,
-            result    INTEGER,
+            "left"    FLOAT8 NOT NULL,
+            "right"   FLOAT8 NOT NULL,
+            result    FLOAT8,
             operation TEXT    NOT NULL,
             status    INTEGER NOT NULL,
-            error     TEXT
+            error     TEXT,
+            is_success BOOLEAN NOT NULL
         );
     )";
 
-    pgConnect_.executeOrError(sql);
+    pgConnect_->executeOrError(sql);
 }
 
 void DBManager::registerOk(Value_t left, Value_t right, Value_t result,
                            const String& operation, int resultStatus)
 {
     registerNewOperation(left, right, result, operation, resultStatus,
-                         std::nullopt);
+                         std::nullopt, true);
 }
 
 void DBManager::registerError(Value_t left, Value_t right,
@@ -44,7 +50,7 @@ void DBManager::registerError(Value_t left, Value_t right,
                               const String& error)
 {
     registerNewOperation(left, right, std::nullopt, operation, resultStatus,
-                         error);
+                         error, false);
 }
 
 std::vector<h1::entity::CalculationResultEntity>
@@ -52,23 +58,24 @@ std::vector<h1::entity::CalculationResultEntity>
 {
     String sql = R"(
         SELECT
-        "id",
-        "left",
-        "right",
-        "result",
-        "operation",
-        "status",
-        "error"
+            "id",
+            "left",
+            "right",
+            "result",
+            "operation",
+            "status",
+            "error",
+            "is_success"
         FROM
-        h1.calculation
-        LIMIT $1 
+            h1.calculation
+        LIMIT $1
     )";
 
     auto params = pg::PGParams();
     params.add(lastCount);
     params.finalize();
 
-    auto res = pgConnect_.executeParamsOrError(sql, params);
+    auto res = pgConnect_->executeParamsOrError(sql, params);
 
     const auto rows = res.rowsCount();
 
@@ -85,6 +92,7 @@ std::vector<h1::entity::CalculationResultEntity>
         auto operationRaw = res.get<String>("operation", i);
         auto statusCodeRaw = res.get<int>("status", i);
         auto errorMessageRaw = res.get<String>("error", i);
+        auto isSuccess = res.get<bool>("is_success", i);
 
         results.emplace_back(
             CalculationResultEntity{.id = *idRaw,
@@ -93,7 +101,8 @@ std::vector<h1::entity::CalculationResultEntity>
                                     .result = resultRaw,
                                     .operation = *operationRaw,
                                     .statusCode = *statusCodeRaw,
-                                    .errorMessage = errorMessageRaw});
+                                    .errorMessage = errorMessageRaw,
+                                    .isSuccess = *isSuccess});
     }
 
     return results;
@@ -102,13 +111,14 @@ std::vector<h1::entity::CalculationResultEntity>
 void DBManager::registerNewOperation(Value_t left, Value_t right,
                                      std::optional<Value_t> result,
                                      const String& operation, int resultStatus,
-                                     std::optional<String> error)
+                                     std::optional<String> error,
+                                     bool isSuccess)
 {
     String sql = R"(
         INSERT INTO
-        h1.calculation("left", "right", "result", "operation", "status", "error")
+        h1.calculation("left", "right", "result", "operation", "status", "error", "is_success")
         VALUES
-        ($1, $2, $3, $4, $5, $6);
+        ($1, $2, $3, $4, $5, $6, $7);
     )";
 
     auto params = pg::PGParams();
@@ -131,10 +141,20 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
     else
     {
         params.add(*error);
-    } // 6
+    }                      // 6
+    params.add(isSuccess); // 7
 
     params.finalize();
-    auto res = pgConnect_.executeParamsOrError(sql, params);
+    auto res = pgConnect_->executeParamsOrError(sql, params);
+}
+
+DBManagerPtr initDataBaseManager()
+{
+    auto connector = h1::db::pg::makePGConnector();
+    auto dbManager = std::make_unique<DBManager>(std::move(connector));
+    dbManager->initSchema();
+    dbManager->createTable();
+    return dbManager;
 }
 
 } // namespace h1::db

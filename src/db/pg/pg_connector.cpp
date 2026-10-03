@@ -1,6 +1,12 @@
 #include "h1/db/pg/pg_connector.hpp"
 
+#include "h1/config/config.hpp"
 #include "h1/db/pg/pg_exceptions.hpp"
+
+#include <algorithm>
+#include <exception>
+#include <iostream>
+#include <sstream>
 
 namespace h1::db::pg
 {
@@ -66,7 +72,21 @@ PGRawResult PGConnector::executeParamsOrError(const String& sql,
 
 PGConnectorPtr makePGConnector(const String& pgConnection)
 {
-    return std::make_unique<PGConnector>(pgConnection);
+    try
+    {
+        return std::make_unique<PGConnector>(pgConnection);
+    }
+    catch (const std::exception& e)
+    {
+        throw PGBaseException(e.what());
+    }
+}
+
+PGConnectorPtr makePGConnector()
+{
+    auto config = h1::config::getConfig();
+    auto libpqConnect = config.postgres.getlibpq();
+    return makePGConnector(libpqConnect);
 }
 
 } // namespace h1::db::pg

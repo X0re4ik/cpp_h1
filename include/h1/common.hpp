@@ -6,6 +6,7 @@
 #include <string>
 
 #define H1_NODISCARD [[nodiscard]]
+#define H1_DISCARD
 #define H1_NOEXCEPT noexcept
 #define H1_EXCEPT
 #define H1_DEFAULT_WHAT_METHOD const char* what() const noexcept override

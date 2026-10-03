@@ -17,7 +17,7 @@ class DBManager
   public:
     using Value_t = h1::entity::CalculationResultEntity::Value_t;
 
-    explicit DBManager(pg::PGConnector& pgConnect);
+    explicit DBManager(pg::PGConnectorPtr pgConnect);
 
     void initSchema();
 
@@ -35,10 +35,13 @@ class DBManager
     void registerNewOperation(Value_t left, Value_t right,
                               std::optional<Value_t> result,
                               const String& operation, int resultStatus,
-                              std::optional<String> error);
+                              std::optional<String> error, bool isSuccess);
 
-    pg::PGConnector& pgConnect_;
+    pg::PGConnectorPtr pgConnect_;
 };
+
+using DBManagerPtr = std::unique_ptr<DBManager>;
+DBManagerPtr initDataBaseManager();
 
 } // namespace h1::db
 

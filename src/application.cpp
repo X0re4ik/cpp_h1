@@ -4,12 +4,14 @@
 #include "h1/db/db.hpp"
 #include "h1/db/manager.hpp"
 #include "h1/exceptions.hpp"
+#include "h1/json_parser/impl.hpp"
 #include "h1/local_cache/local_cache.hpp"
 #include "h1/logger/logger.hpp"
 
 #include <exception>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <string>
 
 namespace h1
@@ -47,6 +49,25 @@ void warmUpCache(h1::lcache::CalcLocalCache& localCache,
         };
         localCache.add(opTask, task);
     }
+}
+
+double calcResult(const h1::jsonp::MathOperation& oper,
+                  h1::calculation::CalculationService& service,
+                  h1::calc::BaseSimpleCalculator& simpleCalc)
+{
+    auto result = service.calculate(oper, simpleCalc);
+
+    String message = result.fromCache ? "КЭШ-а hit" : "КЭШ-а miss";
+
+    H1_LOG_INFO(message);
+
+    if (!result.isSuccess)
+    {
+        throw h1::calc::CalculatorException(
+            result.errorMessage.value_or("UNKNOWN"));
+    }
+
+    return result.result.value();
 }
 
 h1::calc::CalculatorTypeEnum char2CalculatorType(const String& operationChar)
@@ -106,14 +127,13 @@ int Application::run(int argc, char** argv)
     try
     {
 
-        
-        auto value = argParse_.parse(argc, argv);        
+        auto value = argParse_.parse(argc, argv);
         initLogger(value.verbose);
+
+        H1_LOG_INFO("Аргументы командной строки обработаны");
 
         warmUpCache(localCache_, dbManager_);
         H1_LOG_INFO("Кэш успешно прогрет");
-        
-        H1_LOG_INFO("Аргументы командной строки обработаны");
 
         auto mathOperation =
             h1::jsonp::CalculatorParseJson::parse(value.jsonValue);
@@ -124,7 +144,10 @@ int Application::run(int argc, char** argv)
 
         auto calculator = h1::calc::CalculatorFactory::makeCalculator(
             calcType, mathOperation.left, mathOperation.right);
-        auto result = calculator->calculate();
+        h1::calculation::CalculationService calculationService(dbManager_,
+                                                               localCache_);
+        auto result =
+            calcResult(mathOperation, calculationService, *calculator);
 
         H1_LOG_INFO("Результат успешно рассчитан (" + std::to_string(result) +
                     ")")
