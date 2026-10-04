@@ -7,6 +7,7 @@ message(STATUS "CXX Compiler ID:      ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "CXX Compiler Path:    ${CMAKE_CXX_COMPILER}")
 message(STATUS "CXX Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -226,6 +227,11 @@ if(BUILD_TESTING)
         h1_core
         GTest::gtest_main
     )
+
+    set(MEMORYCHECK_COMMAND "/usr/bin/valgrind")
+    set(
+        MEMORYCHECK_COMMAND_OPTIONS
+        "--tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --gen-suppressions=all --error-exitcode=42")
 
     include(GoogleTest)
     gtest_discover_tests(h1_test)
