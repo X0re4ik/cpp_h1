@@ -1,0 +1,22 @@
+https://emn178.github.io/online-tools/md2.html
+
+
+
+
+#include "h1/application.hpp"
+#include "h1/common.hpp"
+#include "h1/db/db.hpp"
+#include "h1/db/manager.hpp"
+#include "h1/db/pg/pg.hpp"
+#include "h1/logger/logger.hpp"
+
+int main(int argc, char* argv[])
+{
+    auto pgConnPtr = h1::db::pg::makePGConnector(
+        "host=localhost port=5432 dbname=mydb user=myuser password=mypassword");
+    auto db = h1::db::DBManager(*pgConnPtr);
+    db.createTable();
+    auto app = h1::Application();
+    auto code = app.run(argc, argv);
+    return code;
+}

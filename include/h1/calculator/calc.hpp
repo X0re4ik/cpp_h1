@@ -6,6 +6,7 @@
 #include "h1/common.hpp"
 
 #include <cmath>
+#include <optional>
 
 namespace h1::calc
 {
@@ -41,6 +42,7 @@ class BaseSimpleCalculator : public ISimpleCalculator
         InputValue right;
         OperationStatus status;
         ReturnValue value;
+        std::optional<String> errorMessage;
     };
 
     explicit BaseSimpleCalculator(Task task);
