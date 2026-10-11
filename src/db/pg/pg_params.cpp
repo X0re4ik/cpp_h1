@@ -35,8 +35,7 @@ void PGParams::finalize()
     ptrs_.reserve(values_.size());
     for (auto& variable : values_)
     {
-        ptrs_.emplace_back(variable.has_value() ? variable->c_str()
-                                                  : nullptr);
+        ptrs_.emplace_back(variable.has_value() ? variable->c_str() : nullptr);
     }
 }
 

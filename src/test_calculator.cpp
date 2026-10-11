@@ -4,7 +4,6 @@
 #include <array>
 #include <memory>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -191,7 +190,7 @@ TEST_P(FactorialCalculatorTest, CalculatesExpectedValue)
 }
 
 INSTANTIATE_TEST_SUITE_P(TestValidFactorial, FactorialCalculatorTest,
-                         testing::Values(FactorialCalculatorCase{10, 3628800.0},
+                         testing::Values(FactorialCalculatorCase{10, 3628800},
                                          FactorialCalculatorCase{1, 1.0},
                                          FactorialCalculatorCase{0, 1.0}));
 

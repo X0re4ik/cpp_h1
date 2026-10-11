@@ -31,7 +31,7 @@ PGConnector::PGConnector(String pgConnection) :
 
     if (PQstatus(conn) != CONNECTION_OK)
     {
-        String error = PQerrorMessage(conn);
+        const String error = PQerrorMessage(conn);
         throw PGConnectionNotOKException(error);
     }
 }

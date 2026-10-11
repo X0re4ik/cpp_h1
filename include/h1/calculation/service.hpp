@@ -20,13 +20,13 @@ struct ResultValue
 class CalculationService
 {
   public:
-    CalculationService(db::DBManager& dbManager,
-                       lcache::CalcLocalCache& localCache);
+    CalculationService(db::IDBManager& dbManager,
+                       lcache::ICalcLocalCache& localCache);
     ResultValue calculate(const jsonp::MathOperation& operation,
                           calc::BaseSimpleCalculator& calculator);
 
   private:
-    db::DBManager& dbManager_;
-    lcache::CalcLocalCache& localCache_;
+    db::IDBManager& dbManager_;
+    lcache::ICalcLocalCache& localCache_;
 };
 } // namespace h1::calculation

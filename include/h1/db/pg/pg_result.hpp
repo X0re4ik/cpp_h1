@@ -25,8 +25,8 @@ class ConvertPGCharTo
 
 template <typename T>
 concept PGCovertable = std::same_as<T, int> || std::same_as<T, double> ||
-    std::same_as<T, std::string> || std::same_as<T, std::int64_t> ||
-    std::same_as<T, bool>;
+                       std::same_as<T, std::string> ||
+                       std::same_as<T, std::int64_t> || std::same_as<T, bool>;
 
 class PGRawResult
 {

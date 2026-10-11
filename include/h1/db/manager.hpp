@@ -12,11 +12,35 @@
 namespace h1::db
 {
 
-class DBManager
+class IDBManager
 {
+
   public:
     using Value_t = h1::entity::CalculationResultEntity::Value_t;
 
+    IDBManager() = default;
+    IDBManager(const IDBManager&) = delete;
+    IDBManager& operator=(const IDBManager&) = delete;
+
+    IDBManager(IDBManager&&) = default;
+    IDBManager& operator=(IDBManager&&) = default;
+
+    virtual ~IDBManager() = default;
+
+    virtual void registerOk(Value_t left, Value_t right, Value_t result,
+                            const String& operation, int resultStatus) = 0;
+
+    virtual void registerError(Value_t left, Value_t right,
+                               const String& operation, int resultStatus,
+                               const String& error) = 0;
+
+    virtual std::vector<h1::entity::CalculationResultEntity>
+        getData(int lastCount) = 0;
+};
+
+class DBManager : public IDBManager
+{
+  public:
     explicit DBManager(pg::PGConnectorPtr pgConnect);
 
     void initSchema();
@@ -24,12 +48,13 @@ class DBManager
     void createTable();
 
     void registerOk(Value_t left, Value_t right, Value_t result,
-                    const String& operation, int resultStatus);
+                    const String& operation, int resultStatus) override;
 
     void registerError(Value_t left, Value_t right, const String& operation,
-                       int resultStatus, const String& error);
+                       int resultStatus, const String& error) override;
 
-    std::vector<h1::entity::CalculationResultEntity> getData(int lastCount);
+    std::vector<h1::entity::CalculationResultEntity>
+        getData(int lastCount) override;
 
   private:
     void registerNewOperation(Value_t left, Value_t right,
@@ -40,7 +65,7 @@ class DBManager
     pg::PGConnectorPtr pgConnect_;
 };
 
-using DBManagerPtr = std::unique_ptr<DBManager>;
+using DBManagerPtr = std::unique_ptr<IDBManager>;
 DBManagerPtr initDataBaseManager();
 
 } // namespace h1::db

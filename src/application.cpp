@@ -34,8 +34,8 @@ void initLogger(bool verbose)
                          .setLogName(h1::projectName));
 }
 
-void warmUpCache(h1::lcache::CalcLocalCache& localCache,
-                 h1::db::DBManager& dbManager)
+void warmUpCache(h1::lcache::ICalcLocalCache& localCache,
+                 h1::db::IDBManager& dbManager)
 {
     const int limitDBData = 100;
     auto tasks = dbManager.getData(limitDBData);
@@ -57,7 +57,7 @@ double calcResult(const h1::jsonp::MathOperation& oper,
 {
     auto result = service.calculate(oper, simpleCalc);
 
-    String message = result.fromCache ? "КЭШ-а hit" : "КЭШ-а miss";
+    const String message = result.fromCache ? "КЭШ-а hit" : "КЭШ-а miss";
 
     H1_LOG_INFO(message);
 
@@ -115,12 +115,12 @@ void prettyPrintResult(std::ostream& oStream, double result,
 }
 
 } // namespace
-Application::Application(h1::db::DBManager& dbManager,
-                         h1::lcache::CalcLocalCache& localCache,
+Application::Application(h1::db::IDBManager& dbManager,
+                         h1::lcache::ICalcLocalCache& localCache,
                          std::ostream& oStream, std::ostream& eStream) :
-    oStream_(oStream),
-    eStream_(eStream), argParse_(projectName, projectVersion),
-    dbManager_(dbManager), localCache_(localCache)
+    oStream_(oStream), eStream_(eStream),
+    argParse_(projectName, projectVersion), dbManager_(dbManager),
+    localCache_(localCache)
 {}
 int Application::run(int argc, char** argv)
 {

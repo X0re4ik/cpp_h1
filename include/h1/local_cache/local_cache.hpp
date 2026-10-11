@@ -38,27 +38,53 @@ struct OpTask
     bool operator==(const OpTask& other) const H1_NOEXCEPT;
 };
 
-class CalcLocalCache
+class ICalcLocalCache
 {
   public:
     using Result_t = h1::entity::CalculationResultEntity;
 
-    void clear();
+    ICalcLocalCache() = default;
+    ICalcLocalCache(const ICalcLocalCache&) = delete;
+    ICalcLocalCache& operator=(const ICalcLocalCache&) = delete;
 
-    std::vector<Result_t> values() const;
+    ICalcLocalCache(ICalcLocalCache&&) = default;
+    ICalcLocalCache& operator=(ICalcLocalCache&&) = default;
+    virtual ~ICalcLocalCache() = default;
+
+    virtual void clear() = 0;
+
+    H1_NODISCARD virtual std::vector<Result_t> values() const = 0;
 
     // NOTE: Возвращает true, если был создан, false если уже был
-    bool add(const OpTask& opTask, Result_t result);
+    virtual bool add(const OpTask& opTask, Result_t result) = 0;
 
-    Result_t get(const OpTask& opTask) const;
+    H1_NODISCARD virtual Result_t get(const OpTask& opTask) const = 0;
 
-    std::optional<Result_t> getIfExist(const OpTask& opTask) const;
+    H1_NODISCARD virtual std::optional<Result_t>
+        getIfExist(const OpTask& opTask) const = 0;
+};
+
+class CalcLocalCache : public ICalcLocalCache
+{
+  public:
+    using Result_t = h1::entity::CalculationResultEntity;
+
+    void clear() override;
+
+    std::vector<Result_t> values() const override;
+
+    // NOTE: Возвращает true, если был создан, false если уже был
+    bool add(const OpTask& opTask, Result_t result) override;
+
+    Result_t get(const OpTask& opTask) const override;
+
+    std::optional<Result_t> getIfExist(const OpTask& opTask) const override;
 
   private:
     std::unordered_map<OpTask, Result_t, OpTask::HashMethod> local_;
 };
 
-using CalcLocalCachePtr = std::unique_ptr<CalcLocalCache>;
+using CalcLocalCachePtr = std::unique_ptr<ICalcLocalCache>;
 CalcLocalCachePtr initCalcLocalCacheManager();
 
 } // namespace h1::lcache

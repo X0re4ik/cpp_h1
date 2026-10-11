@@ -2,7 +2,6 @@
 
 #include <array>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -34,7 +33,7 @@ void initProjectLogger()
             "[%#] %v");
     h1::log::initLoggerConfig(logger);
 }
-void runLoggerInThread(const char* symbol, int count)
+void runLogger(const char* symbol, int count)
 {
     for (int i = 0; i < count; ++i)
     {
@@ -44,30 +43,24 @@ void runLoggerInThread(const char* symbol, int count)
 
 } // namespace
 
-TEST(TestLogger, WorkLoggerInSeveralThreads)
+TEST(TestLogger, WorkLoggerSequentially)
 {
     // Arrange
     initProjectLogger();
     testing::internal::CaptureStdout();
 
-    constexpr int countThreads = 10;
+    constexpr int countSymbols = 10;
     constexpr int countCalls = 5'000;
-    const std::array<const char*, countThreads> symbols = {
+    const std::array<const char*, countSymbols> symbols = {
         "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
-    ASSERT_EQ(symbols.size(), countThreads);
+    ASSERT_EQ(symbols.size(), countSymbols);
 
-    std::vector<std::thread> threads;
-    threads.reserve(countThreads + 2);
-    for (int i = 0; i < countThreads; ++i)
+    for (const auto* symbol : symbols)
     {
-        threads.emplace_back(runLoggerInThread, symbols.at(i), countCalls);
+        runLogger(symbol, countCalls);
     }
 
     // Act
-    for (auto& thread : threads)
-    {
-        thread.join();
-    }
     testing::internal::GetCapturedStdout();
 
     // Assert

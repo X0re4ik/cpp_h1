@@ -21,7 +21,7 @@ void DBManager::initSchema()
 void DBManager::createTable()
 {
 
-    String sql = R"(
+    const String sql = R"(
         CREATE TABLE IF NOT EXISTS h1.calculation
         (
             id        BIGINT  GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -56,7 +56,7 @@ void DBManager::registerError(Value_t left, Value_t right,
 std::vector<h1::entity::CalculationResultEntity>
     DBManager::getData(int lastCount)
 {
-    String sql = R"(
+    const String sql = R"(
         SELECT
             "id",
             "left",
@@ -114,7 +114,7 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
                                      std::optional<String> error,
                                      bool isSuccess)
 {
-    String sql = R"(
+    const String sql = R"(
         INSERT INTO
         h1.calculation("left", "right", "result", "operation", "status", "error", "is_success")
         VALUES
@@ -131,7 +131,7 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
     else
     {
         params.add(*result);
-    }                         // 3
+    } // 3
     params.add(operation);    // 4
     params.add(resultStatus); // 5
     if (!error.has_value())
@@ -141,7 +141,7 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
     else
     {
         params.add(*error);
-    }                      // 6
+    } // 6
     params.add(isSuccess); // 7
 
     params.finalize();

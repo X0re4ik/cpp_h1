@@ -18,8 +18,8 @@ namespace h1
 class Application
 {
   public:
-    explicit Application(h1::db::DBManager& dbManager,
-                         h1::lcache::CalcLocalCache& localCache,
+    explicit Application(h1::db::IDBManager& dbManager,
+                         h1::lcache::ICalcLocalCache& localCache,
                          std::ostream& oStream = std::cout,
                          std::ostream& eStream = std::cerr);
     int run(int argc, char** argv);
@@ -29,8 +29,8 @@ class Application
     std::reference_wrapper<std::ostream> eStream_;
     h1::argp::H1ArgParse argParse_;
 
-    h1::db::DBManager& dbManager_;
-    h1::lcache::CalcLocalCache& localCache_;
+    h1::db::IDBManager& dbManager_;
+    h1::lcache::ICalcLocalCache& localCache_;
 };
 } // namespace h1
 

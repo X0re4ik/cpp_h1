@@ -2,10 +2,9 @@
 
 namespace h1::calculation
 {
-CalculationService::CalculationService(db::DBManager& dbManager,
-                                       lcache::CalcLocalCache& localCache) :
-    dbManager_(dbManager),
-    localCache_(localCache)
+CalculationService::CalculationService(db::IDBManager& dbManager,
+                                       lcache::ICalcLocalCache& localCache) :
+    dbManager_(dbManager), localCache_(localCache)
 {}
 
 ResultValue

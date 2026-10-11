@@ -8,10 +8,41 @@
 namespace h1::lcache
 {
 
-static bool isCommutative(const std::string& operation) H1_NOEXCEPT
+namespace
+{
+bool isCommutative(const std::string& operation) H1_NOEXCEPT
 {
     return operation == "+" || operation == "*";
 }
+
+OpTask::HashMethod::Hash_t hashNotCommutative(const OpTask& opTask)
+{
+    const auto randomSeed = 0x9e3779b9;
+    const auto randomShift = 6;
+
+    auto hash1 = std::hash<std::string>()(opTask.operation);
+    auto hash2 = std::hash<OpTask::Value_t>()(opTask.left);
+    auto hash3 = std::hash<OpTask::Value_t>()(opTask.right);
+
+    OpTask::HashMethod::Hash_t seed = hash1;
+    seed ^= hash2 + randomSeed + (seed << randomShift) + (seed >> 2);
+    seed ^= hash3 + randomSeed + (seed << randomShift) + (seed >> 2);
+    return seed;
+}
+
+OpTask::HashMethod::Hash_t hashCommutative(const OpTask& opTask)
+{
+    auto maxValue = std::max(opTask.left, opTask.right);
+    auto minValue = std::min(opTask.left, opTask.right);
+
+    const std::string calcPart = std::to_string(maxValue) + "\x1f" +
+                                 opTask.operation + "\x1f" +
+                                 std::to_string(minValue);
+
+    auto seed = std::hash<std::string>()(calcPart);
+    return seed;
+}
+} // namespace
 
 bool OpTask::operator==(const OpTask& other) const H1_NOEXCEPT
 {
@@ -27,30 +58,6 @@ bool OpTask::operator==(const OpTask& other) const H1_NOEXCEPT
     }
 
     return left == other.left && right == other.right;
-}
-
-OpTask::HashMethod::Hash_t hashNotCommutative(const OpTask& opTask)
-{
-    auto h1 = std::hash<std::string>()(opTask.operation);
-    auto h2 = std::hash<OpTask::Value_t>()(opTask.left);
-    auto h3 = std::hash<OpTask::Value_t>()(opTask.right);
-
-    OpTask::HashMethod::Hash_t seed = h1;
-    seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    seed ^= h3 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    return seed;
-}
-
-OpTask::HashMethod::Hash_t hashCommutative(const OpTask& opTask)
-{
-    auto maxValue = std::max(opTask.left, opTask.right);
-    auto minValue = std::min(opTask.left, opTask.right);
-
-    std::string calcPart = std::to_string(maxValue) + "\x1f" +
-                           opTask.operation + "\x1f" + std::to_string(minValue);
-
-    auto seed = std::hash<std::string>()(calcPart);
-    return seed;
 }
 
 OpTask::HashMethod::Hash_t

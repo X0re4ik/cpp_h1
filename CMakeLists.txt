@@ -48,6 +48,7 @@ set(H1_COMPILE_OPTIONS
     -Wextra
     -Werror
     -Wpedantic
+    $<$<NOT:$<CONFIG:Release>>:-g;-fno-omit-frame-pointer>    
 )
 message(STATUS "[INFO] Set compile options: ${H1_COMPILE_OPTIONS}")
 target_compile_options(${PROJECT_NAME}
@@ -213,7 +214,7 @@ if(BUILD_TESTING)
         src/test_logger.cpp
         src/test_calculator.cpp
         src/test_json_parser.cpp
-        #src/test_application.cpp
+        src/test_application.cpp
     )
 
     target_compile_features(h1_test PRIVATE cxx_std_20)
@@ -226,6 +227,7 @@ if(BUILD_TESTING)
         PRIVATE
         h1_core
         GTest::gtest_main
+        GTest::gmock_main
     )
 
     set(MEMORYCHECK_COMMAND "/usr/bin/valgrind")
