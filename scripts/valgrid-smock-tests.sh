@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+mkdir -p ./logs
 
 
 TEST_CASE_NUMBER=1

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+mkdir -p ./logs
 
 
 JSON_DATA=$(cat ./scripts/data/big.json)

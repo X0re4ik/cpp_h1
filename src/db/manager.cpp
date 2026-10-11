@@ -56,7 +56,7 @@ void DBManager::registerError(Value_t left, Value_t right,
 std::vector<h1::entity::CalculationResultEntity>
     DBManager::getData(int lastCount)
 {
-    const String sql = R"(
+    String sql = R"(
         SELECT
             "id",
             "left",
@@ -68,20 +68,27 @@ std::vector<h1::entity::CalculationResultEntity>
             "is_success"
         FROM
             h1.calculation
-        LIMIT $1
+        ORDER BY id
     )";
 
-    auto params = pg::PGParams();
-    params.add(lastCount);
-    params.finalize();
-
-    auto res = pgConnect_->executeParamsOrError(sql, params);
+    pg::PGRawResult res = [&]() {
+        if (lastCount > 0)
+        {
+            sql += " LIMIT $1";
+            auto params = pg::PGParams();
+            params.add(lastCount);
+            params.finalize();
+            return pgConnect_->executeParamsOrError(sql, params);
+        }
+        return pgConnect_->executeOrError(sql);
+    }();
 
     const auto rows = res.rowsCount();
 
     using h1::entity::CalculationResultEntity;
     std::vector<CalculationResultEntity> results;
-    results.reserve(static_cast<std::size_t>(lastCount) * 2);
+    results.reserve(lastCount > 0 ? static_cast<std::size_t>(lastCount)
+                                  : static_cast<std::size_t>(rows));
 
     for (int i = 0; i < rows; ++i)
     {

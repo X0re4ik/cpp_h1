@@ -37,8 +37,9 @@ void initLogger(bool verbose)
 void warmUpCache(h1::lcache::ICalcLocalCache& localCache,
                  h1::db::IDBManager& dbManager)
 {
-    const int limitDBData = 100;
-    auto tasks = dbManager.getData(limitDBData);
+    const auto limitCacheValue = 1000;
+    // The assignment assumes that the database is small enough to load in full.
+    auto tasks = dbManager.getData(limitCacheValue);
 
     for (const auto& task : tasks)
     {
@@ -118,9 +119,9 @@ void prettyPrintResult(std::ostream& oStream, double result,
 Application::Application(h1::db::IDBManager& dbManager,
                          h1::lcache::ICalcLocalCache& localCache,
                          std::ostream& oStream, std::ostream& eStream) :
-    oStream_(oStream), eStream_(eStream),
-    argParse_(projectName, projectVersion), dbManager_(dbManager),
-    localCache_(localCache)
+    oStream_(oStream),
+    eStream_(eStream), argParse_(projectName, projectVersion),
+    dbManager_(dbManager), localCache_(localCache)
 {}
 int Application::run(int argc, char** argv)
 {

@@ -215,6 +215,7 @@ if(BUILD_TESTING)
         src/test_calculator.cpp
         src/test_json_parser.cpp
         src/test_application.cpp
+        src/test_local_cache.cpp
     )
 
     target_compile_features(h1_test PRIVATE cxx_std_20)
@@ -237,6 +238,21 @@ if(BUILD_TESTING)
 
     include(GoogleTest)
     gtest_discover_tests(h1_test)
+
+    add_custom_target(valgrind-tests
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/valgrind
+        COMMAND /usr/bin/valgrind
+            --tool=memcheck
+            --leak-check=full
+            --show-leak-kinds=all
+            --track-origins=yes
+            --error-exitcode=42
+            --log-file=${CMAKE_BINARY_DIR}/valgrind/h1_test.%p.log
+            $<TARGET_FILE:h1_test>
+        DEPENDS h1_test
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running unit tests under Valgrind"
+    )
 endif()
 
 include(GNUInstallDirs)
