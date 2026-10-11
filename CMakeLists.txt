@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.22)
+set(CMAKE_CXX_COMPILER clang++)
+
 project(h1 VERSION 1.0 LANGUAGES CXX)
 
+message(STATUS "CXX Compiler ID:      ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CXX Compiler Path:    ${CMAKE_CXX_COMPILER}")
+message(STATUS "CXX Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -10,7 +17,18 @@ set(H1_CORE_SOURCES
     src/calculator/di.cpp
     src/json_parser/impl.cpp
     src/application.cpp
+    src/calculation/service.cpp
     src/argparse/argparse.cpp
+    # db::pg
+    src/db/pg/pg_connector.cpp
+    src/db/pg/pg_params.cpp
+    src/db/pg/pg_result.cpp
+    # db
+    src/db/manager.cpp
+    # lcache
+    src/local_cache/local_cache.cpp
+    # config
+    src/config/config.cpp
 )
 
 add_library(h1_core STATIC ${H1_CORE_SOURCES})
@@ -30,6 +48,7 @@ set(H1_COMPILE_OPTIONS
     -Wextra
     -Werror
     -Wpedantic
+    $<$<NOT:$<CONFIG:Release>>:-g;-fno-omit-frame-pointer>    
 )
 message(STATUS "[INFO] Set compile options: ${H1_COMPILE_OPTIONS}")
 target_compile_options(${PROJECT_NAME}
@@ -50,7 +69,7 @@ include(FetchContent)
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.15.3
+    GIT_TAG v1.17.0
 )
 message(DEBUG "spdlog_POPULATED=${spdlog_POPULATED}")
 FetchContent_MakeAvailable(spdlog)
@@ -82,12 +101,26 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(argparse)
 message(DEBUG "argparse_POPULATED=${argparse_POPULATED}")
 message(STATUS "[INFO] argparse 🟢")
+FetchContent_Declare(
+    libenvpp
+    GIT_REPOSITORY https://github.com/ph3at/libenvpp.git
+    GIT_TAG v1.5.3
+)
+FetchContent_MakeAvailable(libenvpp)
+message(DEBUG "libenvpp_POPULATED=${argparse_POPULATED}")
+message(STATUS "[INFO] libenvpp 🟢")
+
+message(STATUS "[INFO] Load external dependence with `find_package`")
+message(STATUS "[INFO] REQUIRED: PostgreSQL")
+find_package(PostgreSQL REQUIRED)
 
 target_link_libraries(
     h1_core
     PUBLIC
     H1
     nlohmann_json::nlohmann_json
+    PostgreSQL::PostgreSQL
+    libenvpp
     PRIVATE
     argparse
     spdlog::spdlog
@@ -98,6 +131,7 @@ target_link_libraries(
     PRIVATE
     h1_core
 )
+
 
 message(STATUS "Use Clang Format Fix: ${USE_CLANG_FORMAT_FIX}")
 if(USE_CLANG_FORMAT_FIX)
@@ -181,6 +215,7 @@ if(BUILD_TESTING)
         src/test_calculator.cpp
         src/test_json_parser.cpp
         src/test_application.cpp
+        src/test_local_cache.cpp
     )
 
     target_compile_features(h1_test PRIVATE cxx_std_20)
@@ -193,10 +228,31 @@ if(BUILD_TESTING)
         PRIVATE
         h1_core
         GTest::gtest_main
+        GTest::gmock_main
     )
+
+    set(MEMORYCHECK_COMMAND "/usr/bin/valgrind")
+    set(
+        MEMORYCHECK_COMMAND_OPTIONS
+        "--tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --gen-suppressions=all --error-exitcode=42")
 
     include(GoogleTest)
     gtest_discover_tests(h1_test)
+
+    add_custom_target(valgrind-tests
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/valgrind
+        COMMAND /usr/bin/valgrind
+            --tool=memcheck
+            --leak-check=full
+            --show-leak-kinds=all
+            --track-origins=yes
+            --error-exitcode=42
+            --log-file=${CMAKE_BINARY_DIR}/valgrind/h1_test.%p.log
+            $<TARGET_FILE:h1_test>
+        DEPENDS h1_test
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running unit tests under Valgrind"
+    )
 endif()
 
 include(GNUInstallDirs)

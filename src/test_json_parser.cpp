@@ -6,7 +6,6 @@
 
 #include <array>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -21,6 +20,18 @@ struct ValidJSONTestCase
     int right;
     std::string operation;
 };
+
+// NOLINTNEXTLINE (readability-identifier-naming)
+H1_MAYBE_UNUSED void PrintTo(const ValidJSONTestCase& testCase,
+                             std::ostream* ostream)
+{
+    *ostream << "ValidJSONTestCase{"
+             << "validJSONInput=" << testCase.validJSONInput << ";"
+             << "left=" << testCase.left << ";"
+             << "right=" << testCase.right << ";"
+             << "operation=" << testCase.operation << ";"
+             << "}";
+}
 
 class ValidJSONTest : public testing::TestWithParam<ValidJSONTestCase>
 {};
@@ -120,6 +131,14 @@ struct InvalidJSONTestCase
 {
     std::string invalidJSONInput;
 };
+
+// NOLINTNEXTLINE (readability-identifier-naming)
+H1_MAYBE_UNUSED void PrintTo(const InvalidJSONTestCase& testCase,
+                             std::ostream* ostream)
+{
+    *ostream << "InvalidJSONTestCase{"
+             << "invalidJSONInput=" << testCase.invalidJSONInput << "}";
+}
 
 class InvalidJSONTest : public testing::TestWithParam<InvalidJSONTestCase>
 {};

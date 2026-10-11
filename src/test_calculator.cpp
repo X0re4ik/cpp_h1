@@ -1,9 +1,9 @@
 #include "h1/calculator/calc.hpp"
+#include "h1/common.hpp"
 
 #include <array>
 #include <memory>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -158,6 +158,15 @@ struct FactorialCalculatorCase
     double expected;
 };
 
+// NOLINTNEXTLINE (readability-identifier-naming)
+H1_MAYBE_UNUSED void PrintTo(const FactorialCalculatorCase& testCase,
+                             std::ostream* ostream)
+{
+    *ostream << "FactorialCalculatorCase{"
+             << "value=" << testCase.value << ";"
+             << "expected=" << testCase.expected << '}';
+}
+
 template <typename Calculator>
 class FactorialCalculatorCaseTest :
     public testing::TestWithParam<FactorialCalculatorCase>
@@ -182,8 +191,8 @@ TEST_P(FactorialCalculatorTest, CalculatesExpectedValue)
 
 INSTANTIATE_TEST_SUITE_P(TestValidFactorial, FactorialCalculatorTest,
                          testing::Values(FactorialCalculatorCase{10, 3628800},
-                                         FactorialCalculatorCase{1, 1},
-                                         FactorialCalculatorCase{0, 1}));
+                                         FactorialCalculatorCase{1, 1.0},
+                                         FactorialCalculatorCase{0, 1.0}));
 
 // ==== [START] PowerCalculatorTest ====
 using PowerCalculatorTest =

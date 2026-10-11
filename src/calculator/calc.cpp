@@ -2,6 +2,7 @@
 
 #include "h1.hpp"
 #include "h1/calculator/exceptions.hpp"
+#include "h1/common.hpp"
 #include "task.hpp"
 
 #include <iostream>
@@ -32,6 +33,7 @@ void calcOperationFromH1Library(h1::calc::BaseSimpleCalculator::Task& calcTask,
 
     calcTask.status = task->status;
 
+    calcTask.errorMessage = task->errorMessage;
     // Result
     if (task->status != OperationStatus::OK)
     {
@@ -48,7 +50,7 @@ namespace h1::calc
 
 // ===== [START] BaseSimpleCalculator =====
 BaseSimpleCalculator::BaseSimpleCalculator(BaseSimpleCalculator::Task task) :
-    task_(task)
+    task_(std::move(task))
 {}
 
 const BaseSimpleCalculator::Task&

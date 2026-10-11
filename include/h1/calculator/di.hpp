@@ -14,7 +14,7 @@ namespace h1::calc
 class CalculatorFactory
 {
   public:
-    using CalculatorPtr = std::unique_ptr<ISimpleCalculator>;
+    using CalculatorPtr = std::unique_ptr<BaseSimpleCalculator>;
 
     static CalculatorPtr
         makeCalculator(const CalculatorTypeEnum& calcEnum,
