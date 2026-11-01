@@ -11,6 +11,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+set(BOOST_INCLUDE_LIBRARIES asio)
+set(BOOST_ENABLE_CMAKE ON)
+
+
 set(H1_CORE_SOURCES
     src/logger/logger.cpp
     src/calculator/calc.cpp
@@ -29,6 +33,12 @@ set(H1_CORE_SOURCES
     src/local_cache/local_cache.cpp
     # config
     src/config/config.cpp
+    # io_server
+    src/io_server/request_parser.cpp
+    src/io_server/response.cpp
+    src/io_server/io_server.cpp
+    src/io_server/connection_manager.cpp
+    src/io_server/connection.cpp
 )
 
 add_library(h1_core STATIC ${H1_CORE_SOURCES})
@@ -43,12 +53,17 @@ add_executable(
     cmd/main.cpp
 )
 
+add_executable(
+    ${PROJECT_NAME}Server
+    cmd/server_main.cpp
+)
+
 set(H1_COMPILE_OPTIONS
     -Wall
     -Wextra
     -Werror
     -Wpedantic
-    $<$<NOT:$<CONFIG:Release>>:-g;-fno-omit-frame-pointer>    
+    $<$<NOT:$<CONFIG:Release>>:-g;-fno-omit-frame-pointer>
 )
 message(STATUS "[INFO] Set compile options: ${H1_COMPILE_OPTIONS}")
 target_compile_options(${PROJECT_NAME}
@@ -66,9 +81,21 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 message(STATUS "[INFO] Load external dependence with FetchContent")
 include(FetchContent)
 
+include(FetchContent)
+FetchContent_Declare(
+    Boost
+    GIT_REPOSITORY https://github.com/boostorg/boost.git
+    GIT_PROGRESS TRUE
+    GIT_TAG boost-1.82.0
+)
+message(DEBUG "Boost_POPULATED=${Boost_POPULATED}")
+FetchContent_MakeAvailable(Boost)
+message(STATUS "[INFO] Boost 🟢")
+
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_PROGRESS TRUE
     GIT_TAG v1.17.0
 )
 message(DEBUG "spdlog_POPULATED=${spdlog_POPULATED}")
@@ -78,6 +105,7 @@ message(STATUS "[INFO] spdlog 🟢")
 FetchContent_Declare(
     cpp_h1_lib
     GIT_REPOSITORY https://github.com/X0re4ik/cpp_h1_lib.git
+    GIT_PROGRESS TRUE
     GIT_TAG v1.1.11-header-only
 )
 message(DEBUG "cpp_h1_lib_POPULATED=${cpp_h1_lib_POPULATED}")
@@ -96,6 +124,7 @@ message(STATUS "[INFO] json 🟢")
 FetchContent_Declare(
     argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+    GIT_PROGRESS TRUE
     GIT_TAG v3.2
 )
 FetchContent_MakeAvailable(argparse)
@@ -104,6 +133,7 @@ message(STATUS "[INFO] argparse 🟢")
 FetchContent_Declare(
     libenvpp
     GIT_REPOSITORY https://github.com/ph3at/libenvpp.git
+    GIT_PROGRESS TRUE
     GIT_TAG v1.5.3
 )
 FetchContent_MakeAvailable(libenvpp)
@@ -121,6 +151,7 @@ target_link_libraries(
     nlohmann_json::nlohmann_json
     PostgreSQL::PostgreSQL
     libenvpp
+    Boost::asio
     PRIVATE
     argparse
     spdlog::spdlog
@@ -132,6 +163,12 @@ target_link_libraries(
     h1_core
 )
 
+
+target_link_libraries(
+    ${PROJECT_NAME}Server
+    PRIVATE
+    h1_core
+)
 
 message(STATUS "Use Clang Format Fix: ${USE_CLANG_FORMAT_FIX}")
 if(USE_CLANG_FORMAT_FIX)
@@ -242,13 +279,13 @@ if(BUILD_TESTING)
     add_custom_target(valgrind-tests
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/valgrind
         COMMAND /usr/bin/valgrind
-            --tool=memcheck
-            --leak-check=full
-            --show-leak-kinds=all
-            --track-origins=yes
-            --error-exitcode=42
-            --log-file=${CMAKE_BINARY_DIR}/valgrind/h1_test.%p.log
-            $<TARGET_FILE:h1_test>
+        --tool=memcheck
+        --leak-check=full
+        --show-leak-kinds=all
+        --track-origins=yes
+        --error-exitcode=42
+        --log-file=${CMAKE_BINARY_DIR}/valgrind/h1_test.%p.log
+        $<TARGET_FILE:h1_test>
         DEPENDS h1_test
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Running unit tests under Valgrind"
