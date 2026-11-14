@@ -119,9 +119,9 @@ void prettyPrintResult(std::ostream& oStream, double result,
 Application::Application(h1::db::IDBManager& dbManager,
                          h1::lcache::ICalcLocalCache& localCache,
                          std::ostream& oStream, std::ostream& eStream) :
-    oStream_(oStream),
-    eStream_(eStream), argParse_(projectName, projectVersion),
-    dbManager_(dbManager), localCache_(localCache)
+    oStream_(oStream), eStream_(eStream),
+    argParse_(projectName, projectVersion), dbManager_(dbManager),
+    localCache_(localCache)
 {}
 int Application::run(int argc, char** argv)
 {

@@ -6,23 +6,24 @@ namespace
 {
 h1::entity::CalculationResultEntity result(double value)
 {
-    return h1::entity::CalculationResultEntity{
-        .id = 1,
-        .left = 1,
-        .right = 2,
-        .result = value,
-        .operation = "+",
-        .statusCode = 0,
-        .errorMessage = std::nullopt,
-        .isSuccess = true};
+    return h1::entity::CalculationResultEntity{.id = 1,
+                                               .left = 1,
+                                               .right = 2,
+                                               .result = value,
+                                               .operation = "+",
+                                               .statusCode = 0,
+                                               .errorMessage = std::nullopt,
+                                               .isSuccess = true};
 }
 } // namespace
 
 TEST(CalcLocalCache, TreatsCommutativeOperandsAsTheSameOperation)
 {
     h1::lcache::CalcLocalCache cache;
-    const auto first = h1::lcache::OpTask{.left = 1, .right = 2, .operation = "+"};
-    const auto reversed = h1::lcache::OpTask{.left = 2, .right = 1, .operation = "+"};
+    const auto first =
+        h1::lcache::OpTask{.left = 1, .right = 2, .operation = "+"};
+    const auto reversed =
+        h1::lcache::OpTask{.left = 2, .right = 1, .operation = "+"};
 
     EXPECT_TRUE(cache.add(first, result(3)));
     EXPECT_FALSE(cache.add(reversed, result(3)));
@@ -33,8 +34,10 @@ TEST(CalcLocalCache, TreatsCommutativeOperandsAsTheSameOperation)
 TEST(CalcLocalCache, PreservesOperandOrderForNonCommutativeOperations)
 {
     h1::lcache::CalcLocalCache cache;
-    const auto first = h1::lcache::OpTask{.left = 1, .right = 2, .operation = "-"};
-    const auto reversed = h1::lcache::OpTask{.left = 2, .right = 1, .operation = "-"};
+    const auto first =
+        h1::lcache::OpTask{.left = 1, .right = 2, .operation = "-"};
+    const auto reversed =
+        h1::lcache::OpTask{.left = 2, .right = 1, .operation = "-"};
 
     EXPECT_TRUE(cache.add(first, result(-1)));
     EXPECT_FALSE(cache.getIfExist(reversed).has_value());

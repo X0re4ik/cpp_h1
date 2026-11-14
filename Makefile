@@ -7,7 +7,7 @@ PROJECT_NAME := h1
 BUILD_DIR := build
 
 .DEFAULT_GOAL := help
-.PHONY: help configure build rebuild run test memcheck format tidy perf valgrind clean
+.PHONY: help configure build rebuild package run test memcheck format tidy perf valgrind clean
 
 help: ## Показать список доступных команд
 	@printf '\nИспользование: make <команда>\n\n'
@@ -22,6 +22,9 @@ build: configure ## Собрать приложение и тесты
 
 rebuild: ## Полностью пересобрать проект
 	cmake --build $(BUILD_DIR) --clean-first --parallel
+
+package: build ## Собрать deb-пакет
+	cd $(BUILD_DIR) && cpack -G DEB
 
 run: build ## Запустить приложение (передайте ARGS='...')
 	./$(BUILD_DIR)/bin/$(PROJECT_NAME) $(ARGS)

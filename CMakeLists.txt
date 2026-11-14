@@ -202,6 +202,9 @@ include(CTest)
 message(STATUS "Build Test: ${BUILD_TESTING}")
 
 if(BUILD_TESTING)
+    # Заголовки/библиотеки GoogleTest не должны попадать в deb-пакет (CPack
+    # выполняет install-правила всех подпроектов); тестам это не нужно.
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     FetchContent_Declare(
         googletest
         URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
@@ -264,3 +267,28 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
+
+# ==== CPack: сборка deb-пакета (cpack -G DEB) ====
+set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_VENDOR "Mochalov Anton")
+set(CPACK_PACKAGE_CONTACT "Mochalov Anton <xoore4ik@gmail.com>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "h1 - консольный калькулятор на C++20 с хранением истории операций в PostgreSQL")
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
+    "Консольный калькулятор h1. Принимает математическую операцию в виде
+JSON-строки через CLI (--config), выполняет вычисление и печатает результат.
+История операций сохраняется в PostgreSQL и в локальный кеш.
+Поддерживаемые операции: + - * / ^ !.")
+set(CPACK_DEBIAN_PACKAGE_RELEASE 1)
+set(CPACK_DEBIAN_PACKAGE_SECTION utils)
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${CPACK_PACKAGE_CONTACT})
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+# Явный минимум зависимостей; SHLIBDEPS дополнит список автоматически
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libpq5")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
+
+include(CPack)

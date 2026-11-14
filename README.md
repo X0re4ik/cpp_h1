@@ -52,6 +52,47 @@ cmake --build build
 ./build/bin/h1
 ```
 
+## Сборка deb-пакета
+
+Собрать пакет (требуется обычная сборка; `make package` сам соберет проект):
+
+```bash
+make package
+# или вручную:
+cmake --build build --parallel
+cd build && cpack -G DEB
+```
+
+Готовый пакет: `build/h1_1.0-1_amd64.deb`.
+
+Установка через apt (apt сам поставит зависимость `libpq5`):
+
+```bash
+sudo apt-get install ./build/h1_1.0-1_amd64.deb
+```
+
+После установки бинарник доступен как `h1`:
+
+```bash
+h1 --help
+h1 --config '{"left": 2, "right": 3, "operation": "+"}'
+```
+
+Удаление:
+
+```bash
+sudo apt-get remove h1
+```
+
+Замечание: повторная установка той же версии требует `sudo apt-get install
+--reinstall ./build/h1_1.0-1_amd64.deb` либо bump ревизии пакета
+(`CPACK_DEBIAN_PACKAGE_RELEASE` в `CMakeLists.txt`).
+
+В состав пакета входит только `/usr/bin/h1`. PostgreSQL-сервер не является
+зависимостью пакета — для работы с БД поднимите PostgreSQL отдельно
+(например, `docker compose -f docker/docker-compose.dev.yaml up -d`) и
+задайте переменные окружения из `.env`.
+
 ## Запуск
 
 Приложение принимает JSON через аргумент `--config`.
