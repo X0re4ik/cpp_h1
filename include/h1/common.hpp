@@ -2,6 +2,7 @@
 #define H_COMMON_75e9988f57d50bef0a3aaf7ebe3eb8f4
 
 #include <exception>
+#include <iostream>
 #include <memory>
 #include <string>
 

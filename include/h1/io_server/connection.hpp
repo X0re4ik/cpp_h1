@@ -6,6 +6,7 @@
 #include "h1/io_server/request.hpp"
 #include "h1/io_server/request_parser.hpp"
 #include "h1/io_server/response.hpp"
+#include "h1/io_server/router.hpp"
 
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
@@ -29,7 +30,7 @@ class Connection :
 {
   public:
     explicit Connection(boost::asio::io_context& ioContext,
-                        ConnectionManager& manager);
+                        ConnectionManager& manager, APIRouter& apiRouter);
 
     boost::asio::ip::tcp::socket& socket();
 
@@ -49,8 +50,12 @@ class Connection :
     ConnectionManager& connectionManager_;
     boost::array<char, gBufferSize> buffer_;
 
+    boost::asio::io_context::strand strand_;
+
     Request request_;
     Response response_;
+
+    APIRouter& apiRouter_;
 
     RequestParser requestParser_;
 };
@@ -58,7 +63,7 @@ class Connection :
 using ConnectionPtr = std::shared_ptr<Connection>;
 
 ConnectionPtr makeConnection(boost::asio::io_context& ioContext,
-                             ConnectionManager& manager);
+                             ConnectionManager& manager, APIRouter& apiRouter);
 
 } // namespace h1::io_server
 

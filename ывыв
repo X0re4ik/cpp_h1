@@ -1,0 +1,1 @@
+curl -X POST http://localhost:8080/h1/task/ -H "Content-Type: application/json" -d '{"left": 2, "right": 8, "operation": "^"}'

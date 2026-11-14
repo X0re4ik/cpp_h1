@@ -1,33 +1,58 @@
 #include "h1/io_server/connection.hpp"
 
 #include "h1/io_server/connection_manager.hpp"
+#include "h1/io_server/handler.hpp"
 #include "h1/io_server/response.hpp"
+#include "h1/io_server/router.hpp"
+#include "h1/logger/logger.hpp"
 
+#include <exception>
 #include <memory>
+#include <string>
 
 namespace h1::io_server
 {
 
-ConnectionPtr makeConnection(boost::asio::io_context& ioContext,
-                             ConnectionManager& manager)
+void handler(const HandlerPtr& handlerPtr, const Request& request,
+             Response& response)
 {
-    return std::make_shared<Connection>(ioContext, manager);
+    try
+    {
+        handlerPtr->handleRequest(request, response);
+    }
+    catch (const std::exception& ext)
+    {
+        response =
+            Response::stockResponse(Response::Status::InternalServerError);
+    }
+}
+
+ConnectionPtr makeConnection(boost::asio::io_context& ioContext,
+                             ConnectionManager& manager, APIRouter& apiRouter)
+{
+    return std::make_shared<Connection>(ioContext, manager, apiRouter);
 }
 
 Connection::Connection(boost::asio::io_context& ioContext,
-                       ConnectionManager& manager) :
+                       ConnectionManager& manager, APIRouter& apiRouter) :
     socket_(ioContext),
-    connectionManager_(manager), buffer_({})
+    connectionManager_(manager),
+    //
+    buffer_({}),
+    //
+    strand_(ioContext),
+    //
+    apiRouter_(apiRouter)
 {}
 
 void Connection::start()
 {
     socket_.async_read_some(
+
         boost::asio::buffer(buffer_),
-        [self = shared_from_this()](const boost::system::error_code& ext,
-                                    std::size_t bytes) {
-            self->handleRead(ext, bytes);
-        });
+        strand_.wrap([self = shared_from_this()](
+                         const boost::system::error_code& ext,
+                         std::size_t bytes) { self->handleRead(ext, bytes); }));
 }
 
 void Connection::stop()
@@ -55,37 +80,57 @@ void Connection::handleRead(const boost::system::error_code& ext,
 
     if (result)
     {
-        // Вызвать handler на получение ответа от сервера
-        // TODO
-        response_.content = "Hello World";
-        response_.status = Response::Status::Ok;
+
+        // Найти и вызвать handler для маршрута
+        const auto route = apiRouter_.getHandler(request_.method, request_.uri);
+
+        switch (route.match)
+        {
+            case RouteMatch::Found:
+                handler(route.handler, request_, response_);
+                break;
+            case RouteMatch::MethodNotAllowed:
+                response_ =
+                    Response::stockResponse(Response::Status::MethodNotAllowed);
+                break;
+            case RouteMatch::NotFound:
+                response_ = Response::stockResponse(Response::Status::NotFound);
+                break;
+        }
+
+        H1_LOG_INFO(request_.method + " - " + request_.uri + " - " +
+                    std::to_string(static_cast<int>(response_.status)));
 
         // Отправить клиенту ответ
         boost::asio::async_write(
             socket_, response_.toBuffers(),
-            [self = shared_from_this()](const boost::system::error_code& ext,
-                                        std::size_t /*bytes_transferred*/) {
+            strand_.wrap([self = shared_from_this()](
+                             const boost::system::error_code& ext,
+                             std::size_t /*bytes_transferred*/) {
                 self->handleWrite(ext);
-            });
+            }));
     }
     else if (!result)
     {
+        H1_LOG_INFO(request_.method + " - " + request_.uri);
         response_ = Response::stockResponse(Response::Status::BadRequest);
         boost::asio::async_write(
             socket_, response_.toBuffers(),
-            [self = shared_from_this()](const boost::system::error_code& ext,
-                                        std::size_t /*bytes_transferred*/) {
+            strand_.wrap([self = shared_from_this()](
+                             const boost::system::error_code& ext,
+                             std::size_t /*bytes_transferred*/) {
                 self->handleWrite(ext);
-            });
+            }));
     }
     else
     {
         socket_.async_read_some(
             boost::asio::buffer(buffer_),
-            [self = shared_from_this()](const boost::system::error_code& ext,
-                                        std::size_t bytes) {
-                self->handleRead(ext, bytes);
-            });
+            strand_.wrap(
+                [self = shared_from_this()](
+                    const boost::system::error_code& ext, std::size_t bytes) {
+                    self->handleRead(ext, bytes);
+                }));
     }
 }
 

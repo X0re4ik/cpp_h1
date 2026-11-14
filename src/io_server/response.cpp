@@ -20,6 +20,7 @@ const String badRequest = "HTTP/1.0 400 Bad Request\r\n";
 const String unauthorized = "HTTP/1.0 401 Unauthorized\r\n";
 const String forbidden = "HTTP/1.0 403 Forbidden\r\n";
 const String notFound = "HTTP/1.0 404 Not Found\r\n";
+const String methodNotAllowed = "HTTP/1.0 405 Method Not Allowed\r\n";
 const String internalServerError = "HTTP/1.0 500 Internal Server Error\r\n";
 const String notImplemented = "HTTP/1.0 501 Not Implemented\r\n";
 const String badGateway = "HTTP/1.0 502 Bad Gateway\r\n";
@@ -53,6 +54,8 @@ boost::asio::const_buffer toBuffer(Response::Status status)
             return boost::asio::buffer(forbidden);
         case Response::Status::NotFound:
             return boost::asio::buffer(notFound);
+        case Response::Status::MethodNotAllowed:
+            return boost::asio::buffer(methodNotAllowed);
         case Response::Status::InternalServerError:
             return boost::asio::buffer(internalServerError);
         case Response::Status::NotImplemented:
@@ -140,6 +143,10 @@ const char notFound[] = "<html>"
                         "<head><title>Not Found</title></head>"
                         "<body><h1>404 Not Found</h1></body>"
                         "</html>";
+const char methodNotAllowed[] = "<html>"
+                                "<head><title>Method Not Allowed</title></head>"
+                                "<body><h1>405 Method Not Allowed</h1></body>"
+                                "</html>";
 const char internalServerError[] =
     "<html>"
     "<head><title>Internal Server Error</title></head>"
@@ -187,6 +194,8 @@ String toString(Response::Status status)
             return forbidden;
         case Response::Status::NotFound:
             return notFound;
+        case Response::Status::MethodNotAllowed:
+            return methodNotAllowed;
         case Response::Status::InternalServerError:
             return internalServerError;
         case Response::Status::NotImplemented:

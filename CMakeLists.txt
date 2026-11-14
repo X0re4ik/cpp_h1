@@ -39,6 +39,8 @@ set(H1_CORE_SOURCES
     src/io_server/io_server.cpp
     src/io_server/connection_manager.cpp
     src/io_server/connection.cpp
+    src/io_server/router.cpp
+    src/io_server/handlers/task_manager.cpp
 )
 
 add_library(h1_core STATIC ${H1_CORE_SOURCES})
@@ -253,6 +255,7 @@ if(BUILD_TESTING)
         src/test_json_parser.cpp
         src/test_application.cpp
         src/test_local_cache.cpp
+        src/test_request_parser.cpp
     )
 
     target_compile_features(h1_test PRIVATE cxx_std_20)

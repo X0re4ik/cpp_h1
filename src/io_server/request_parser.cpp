@@ -1,14 +1,34 @@
 #include "h1/io_server/request_parser.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <string_view>
+
 namespace h1::io_server
 {
 
-RequestParser::RequestParser() : state_(State::MethodStart)
+namespace
+{
+
+/// Сравнение строк без учёта регистра (имена заголовков в HTTP)
+bool iequals(std::string_view lhs, std::string_view rhs)
+{
+    return lhs.size() == rhs.size() &&
+           std::equal(lhs.begin(), lhs.end(), rhs.begin(), [](char a, char b) {
+               return std::tolower(static_cast<unsigned char>(a)) ==
+                      std::tolower(static_cast<unsigned char>(b));
+           });
+}
+
+} // namespace
+
+RequestParser::RequestParser() : state_(State::MethodStart), bodyRemaining_(0)
 {}
 
 void RequestParser::reset()
 {
     state_ = State::MethodStart;
+    bodyRemaining_ = 0;
 }
 
 boost::tribool RequestParser::consume(Request& req, char input)
@@ -206,10 +226,60 @@ boost::tribool RequestParser::consume(Request& req, char input)
             }
             return false;
         case State::ExpectingNewline3:
-            return input == '\n';
+            if (input != '\n')
+            {
+                return false;
+            }
+            // Заголовки закончились — определить длину тела
+            if (!extractContentLength(req, bodyRemaining_))
+            {
+                return false;
+            }
+            if (bodyRemaining_ == 0)
+            {
+                return true;
+            }
+            state_ = State::Body;
+            return boost::indeterminate;
+        case State::Body:
+            req.body.push_back(input);
+            if (--bodyRemaining_ == 0)
+            {
+                return true;
+            }
+            return boost::indeterminate;
         default:
             return false;
     }
+}
+
+bool RequestParser::extractContentLength(const Request& req, std::size_t& length)
+{
+    for (const Header& header : req.headers)
+    {
+        if (!iequals(header.name, "content-length"))
+        {
+            continue;
+        }
+        if (header.value.empty())
+        {
+            return false;
+        }
+        std::size_t value = 0;
+        for (char c : header.value)
+        {
+            if (!isDigit(c))
+            {
+                return false;
+            }
+            value = value * 10 + static_cast<std::size_t>(c - '0');
+        }
+        length = value;
+        return true;
+    }
+    // Заголовка нет — тела нет
+    length = 0;
+    return true;
 }
 
 bool RequestParser::isChar(int c)

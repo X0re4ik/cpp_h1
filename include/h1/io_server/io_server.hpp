@@ -5,10 +5,13 @@
 #include "h1/common.hpp"
 #include "h1/io_server/connection.hpp"
 #include "h1/io_server/connection_manager.hpp"
+#include "h1/io_server/router.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/noncopyable.hpp>
+
+#include <mutex>
 
 namespace h1::io_server
 {
@@ -16,7 +19,8 @@ namespace h1::io_server
 class IOServer : private boost::noncopyable
 {
   public:
-    explicit IOServer(const std::string& address, const std::string& port);
+    explicit IOServer(const std::string& address, const std::string& port,
+                      APIRouter apiRouter, std::size_t countTreads);
 
     /// Run the server's io_service loop.
     void run();
@@ -42,6 +46,9 @@ class IOServer : private boost::noncopyable
 
     ConnectionManager connectionManager_;
     ConnectionPtr connectionPtr;
+
+    std::size_t countTreads_;
+    APIRouter apiRouter_;
 };
 
 } // namespace h1::io_server

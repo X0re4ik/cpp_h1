@@ -27,6 +27,11 @@ struct Request
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     std::vector<Header> headers;
+
+    /// Тело запроса (payload). Заполняется парсером при наличии
+    /// заголовка Content-Length.
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+    String body;
 };
 
 } // namespace h1::io_server

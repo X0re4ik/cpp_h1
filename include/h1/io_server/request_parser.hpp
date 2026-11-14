@@ -77,8 +77,16 @@ class RequestParser
         SpaceBeforeHeaderValue,
         HeaderValue,
         ExpectingNewline2,
-        ExpectingNewline3
+        ExpectingNewline3,
+        Body
     } state_;
+
+    /// Сколько байт тела осталось прочитать
+    std::size_t bodyRemaining_;
+
+    /// Найти Content-Length в заголовках (регистр имени не учитывается).
+    /// Возвращает false, если заголовок задан некорректно.
+    static bool extractContentLength(const Request& req, std::size_t& length);
 };
 
 } // namespace h1::io_server

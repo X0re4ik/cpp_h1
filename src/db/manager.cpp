@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <memory>
+#include <mutex>
 
 namespace h1::db
 {
@@ -15,6 +16,7 @@ DBManager::DBManager(pg::PGConnectorPtr pgConnect) :
 
 void DBManager::initSchema()
 {
+    std::lock_guard<std::mutex> lock(mtx_);
     pgConnect_->executeOrError("CREATE SCHEMA IF NOT EXISTS h1;");
 }
 
@@ -35,6 +37,7 @@ void DBManager::createTable()
         );
     )";
 
+    std::lock_guard<std::mutex> lock(mtx_);
     pgConnect_->executeOrError(sql);
 }
 
@@ -72,6 +75,7 @@ std::vector<h1::entity::CalculationResultEntity>
     )";
 
     pg::PGRawResult res = [&]() {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (lastCount > 0)
         {
             sql += " LIMIT $1";
@@ -121,6 +125,8 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
                                      std::optional<String> error,
                                      bool isSuccess)
 {
+    std::lock_guard<std::mutex> lock(mtx_);
+
     const String sql = R"(
         INSERT INTO
         h1.calculation("left", "right", "result", "operation", "status", "error", "is_success")
@@ -138,7 +144,7 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
     else
     {
         params.add(*result);
-    } // 3
+    }                         // 3
     params.add(operation);    // 4
     params.add(resultStatus); // 5
     if (!error.has_value())
@@ -148,10 +154,14 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
     else
     {
         params.add(*error);
-    } // 6
+    }                      // 6
     params.add(isSuccess); // 7
 
     params.finalize();
+
+    // libpq не допускает одновременное использование одного PGconn
+    // из нескольких потоков — сериализуем доступ
+    std::lock_guard<std::mutex> lock(mtx_);
     auto res = pgConnect_->executeParamsOrError(sql, params);
 }
 
