@@ -260,6 +260,52 @@ endif()
 
 include(GNUInstallDirs)
 
+# ==== systemd-юниты в deb-пакете ====
+# Чтобы добавить юнит в пакет, достаточно положить файл в packaging/systemd/
+# (*.service, *.timer, *.socket) - он автоматически попадёт в
+# /usr/lib/systemd/system. Скрипты сопровождения (postinst/prerm/postrm)
+# управляют жизненным циклом юнита: enable при установке, disable при
+# удалении, daemon-reload при установке и после удаления.
+option(H1_INSTALL_SYSTEMD_UNITS
+    "Устанавливать systemd-юниты из packaging/systemd" ON)
+
+if(H1_INSTALL_SYSTEMD_UNITS)
+    file(GLOB H1_SYSTEMD_UNITS CONFIGURE_DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/*.service
+        ${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/*.timer
+        ${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/*.socket
+    )
+
+    if(H1_SYSTEMD_UNITS)
+        # Юниты всегда ставятся в /usr/lib/systemd/system, поэтому каталог
+        # задаётся явно (на Debian CMAKE_INSTALL_LIBDIR может быть multiarch-ом).
+        set(H1_SYSTEMD_UNIT_DIR "lib/systemd/system" CACHE STRING
+            "Каталог установки systemd-юнитов (относительно префикса)")
+        install(FILES ${H1_SYSTEMD_UNITS}
+            DESTINATION ${H1_SYSTEMD_UNIT_DIR}
+        )
+        message(STATUS
+            "[INFO] systemd units: ${H1_SYSTEMD_UNITS} -> /${H1_SYSTEMD_UNIT_DIR}")
+    else()
+        message(STATUS "[INFO] systemd units: каталог packaging/systemd пуст")
+    endif()
+endif()
+
+
+# ==== Конфигурация пакета ====
+# /etc/h1/h1.env - переменные окружения для systemd-юнита (подключение к БД).
+# Основной конфиг пакета; содержимое берётся из packaging/etc/h1/h1.env.
+# DESTINATION задаётся абсолютным путём: конфиг должен попадать именно в /etc,
+# а не в ${CPACK_PACKAGING_INSTALL_PREFIX}/etc (=/usr/etc). Файл регистрируется
+# как conffile (см. packaging/deb/conffiles), поэтому dpkg сохраняет правки
+# пользователя при обновлении пакета.
+set(H1_SYSCONF_DIR "/etc/h1" CACHE STRING
+    "Каталог конфигурации h1 в пакете")
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/etc/h1/h1.env
+    DESTINATION ${H1_SYSCONF_DIR}
+)
+message(STATUS "[INFO] config: packaging/etc/h1/h1.env -> ${H1_SYSCONF_DIR}/h1.env")
+
 install(TARGETS ${PROJECT_NAME}
     EXPORT ${PROJECT_NAME}Targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -290,5 +336,11 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libpq5")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
+# Скрипты сопровождения: включение юнита в автозагрузку и daemon-reload
+# при установке (postinst), disable при удалении (prerm), daemon-reload
+# после удаления (postrm); conffiles - список конфигов пакета
+# (dpkg сохраняет пользовательские правки)
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/deb/postinst;${CMAKE_CURRENT_SOURCE_DIR}/packaging/deb/prerm;${CMAKE_CURRENT_SOURCE_DIR}/packaging/deb/postrm;${CMAKE_CURRENT_SOURCE_DIR}/packaging/deb/conffiles")
 
 include(CPack)

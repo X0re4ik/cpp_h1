@@ -1,0 +1,12 @@
+#!/bin/sh
+# Вызывается dpkg после установки/обновления пакета.
+set -e
+
+if [ "$1" = "configure" ] && command -v systemctl >/dev/null 2>&1; then
+    # systemd должен перечитать каталоги с юнитами
+    systemctl daemon-reload || true
+    # Юнит включается в автозагрузку при установке пакета
+    systemctl enable h1 || true
+fi
+
+exit 0

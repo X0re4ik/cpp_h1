@@ -88,10 +88,46 @@ sudo apt-get remove h1
 --reinstall ./build/h1_1.0-1_amd64.deb` либо bump ревизии пакета
 (`CPACK_DEBIAN_PACKAGE_RELEASE` в `CMakeLists.txt`).
 
-В состав пакета входит только `/usr/bin/h1`. PostgreSQL-сервер не является
-зависимостью пакета — для работы с БД поднимите PostgreSQL отдельно
-(например, `docker compose -f docker/docker-compose.dev.yaml up -d`) и
-задайте переменные окружения из `.env`.
+В состав пакета входит `/usr/bin/h1` и systemd-юниты из `packaging/systemd/`
+(см. ниже). PostgreSQL-сервер не является зависимостью пакета — для работы
+с БД поднимите PostgreSQL отдельно (например,
+`docker compose -f docker/docker-compose.dev.yaml up -d`) и задайте
+переменные окружения из `.env`.
+
+## systemd-юниты в пакете
+
+Чтобы добавить юнит в deb-пакет, положите файл с расширением `.service`,
+`.timer` или `.socket` в каталог `packaging/systemd/` — при сборке он
+автоматически попадёт в `/usr/lib/systemd/system`
+(отключается опцией `-DH1_INSTALL_SYSTEMD_UNITS=OFF`).
+
+В пакете уже есть пример `h1.service` (разовый расчёт, `Type=oneshot`).
+При установке пакета юнит автоматически включается в автозагрузку
+(`postinst` выполняет `systemctl enable h1`), поэтому расчёт выполняется
+и при каждой загрузке машины:
+
+```bash
+systemctl is-enabled h1     # enabled
+sudo systemctl start h1     # выполнить операцию из ExecStart вручную
+systemctl status h1         # oneshot: после расчёта inactive (dead)
+journalctl -u h1            # результат расчёта
+sudo systemctl disable h1   # убрать из автозагрузки
+```
+
+Приложению нужны переменные окружения для подключения к PostgreSQL
+(`DB_PGHOST`, `DB_PGPORT`, `DB_PGDATABASE`, `DB_PGUSER`, `DB_PGPASSWORD`).
+Конфиг ставится пакетом в `/etc/h1/h1.env` (он же читается юнитом) и
+зарегистрирован как conffile — dpkg сохранит ваши правки при обновлении:
+
+```bash
+sudoedit /etc/h1/h1.env       # укажите свои параметры подключения
+```
+
+При установке и удалении пакета скрипты `packaging/deb/postinst` (включение
+юнита в автозагрузку), `packaging/deb/prerm` (снятие с автозагрузки при
+удалении) и `packaging/deb/postrm` выполняют `systemctl daemon-reload`,
+поэтому после добавления нового юнита в `packaging/systemd/` и переустановки
+пакета он сразу виден systemd без ручной перезагрузки демона.
 
 ## Запуск
 
