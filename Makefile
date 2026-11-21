@@ -7,7 +7,7 @@ PROJECT_NAME := h1
 BUILD_DIR := build
 
 .DEFAULT_GOAL := help
-.PHONY: help configure build rebuild run test memcheck format tidy perf valgrind clean
+.PHONY: help configure build rebuild package run test memcheck format tidy perf valgrind tsan clean
 
 help: ## Показать список доступных команд
 	@printf '\nИспользование: make <команда>\n\n'
@@ -22,6 +22,9 @@ build: configure ## Собрать приложение и тесты
 
 rebuild: ## Полностью пересобрать проект
 	cmake --build $(BUILD_DIR) --clean-first --parallel
+
+package: build ## Собрать deb-пакет
+	cd $(BUILD_DIR) && cpack -G DEB
 
 run: build ## Запустить приложение (передайте ARGS='...')
 	./$(BUILD_DIR)/bin/$(PROJECT_NAME) $(ARGS)
@@ -45,6 +48,11 @@ perf: ## Запустить Perf-профилирование
 
 valgrind: ## Запустить Valgrind-сценарий
 	./scripts/valgrid-smock-tests.sh
+
+tsan: ## Собрать и прогнать тесты под ThreadSanitizer
+	cmake -S . -B $(BUILD_DIR)-tsan -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DH1_USE_TSAN=ON
+	cmake --build $(BUILD_DIR)-tsan --parallel
+	ctest --test-dir $(BUILD_DIR)-tsan --output-on-failure
 
 clean: ## Удалить артефакты сборки
 	cmake --build $(BUILD_DIR) --target clean 2>/dev/null || true

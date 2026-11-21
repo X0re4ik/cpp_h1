@@ -82,6 +82,7 @@ class CalcLocalCache : public ICalcLocalCache
 
   private:
     std::unordered_map<OpTask, Result_t, OpTask::HashMethod> local_;
+    mutable std::mutex mtx_;
 };
 
 using CalcLocalCachePtr = std::unique_ptr<ICalcLocalCache>;

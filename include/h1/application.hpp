@@ -15,6 +15,10 @@
 namespace h1
 {
 
+/// Загрузить историю операций из БД в локальный кеш.
+void warmUpLocalCache(h1::lcache::ICalcLocalCache& localCache,
+                      h1::db::IDBManager& dbManager);
+
 class Application
 {
   public:

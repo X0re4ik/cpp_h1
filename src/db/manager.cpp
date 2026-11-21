@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <memory>
+#include <mutex>
 
 namespace h1::db
 {
@@ -15,6 +16,7 @@ DBManager::DBManager(pg::PGConnectorPtr pgConnect) :
 
 void DBManager::initSchema()
 {
+    const std::scoped_lock lock(mtx_);
     pgConnect_->executeOrError("CREATE SCHEMA IF NOT EXISTS h1;");
 }
 
@@ -35,6 +37,7 @@ void DBManager::createTable()
         );
     )";
 
+    const std::scoped_lock lock(mtx_);
     pgConnect_->executeOrError(sql);
 }
 
@@ -71,7 +74,8 @@ std::vector<h1::entity::CalculationResultEntity>
         ORDER BY id
     )";
 
-    pg::PGRawResult res = [&]() {
+    const pg::PGRawResult res = [&]() {
+        const std::scoped_lock lock(mtx_);
         if (lastCount > 0)
         {
             sql += " LIMIT $1";
@@ -101,15 +105,17 @@ std::vector<h1::entity::CalculationResultEntity>
         auto errorMessageRaw = res.get<String>("error", i);
         auto isSuccess = res.get<bool>("is_success", i);
 
+        // NOLINTBEGIN(bugprone-unchecked-optional-access)
         results.emplace_back(
-            CalculationResultEntity{.id = *idRaw,
-                                    .left = *leftRaw,
-                                    .right = *rightRaw,
+            CalculationResultEntity{.id = idRaw.value(),
+                                    .left = leftRaw.value(),
+                                    .right = rightRaw.value(),
                                     .result = resultRaw,
-                                    .operation = *operationRaw,
-                                    .statusCode = *statusCodeRaw,
+                                    .operation = operationRaw.value(),
+                                    .statusCode = statusCodeRaw.value(),
                                     .errorMessage = errorMessageRaw,
-                                    .isSuccess = *isSuccess});
+                                    .isSuccess = isSuccess.value()});
+        // NOLINTEND(bugprone-unchecked-optional-access)
     }
 
     return results;
@@ -121,6 +127,8 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
                                      std::optional<String> error,
                                      bool isSuccess)
 {
+    const std::scoped_lock lock(mtx_);
+
     const String sql = R"(
         INSERT INTO
         h1.calculation("left", "right", "result", "operation", "status", "error", "is_success")
@@ -152,7 +160,11 @@ void DBManager::registerNewOperation(Value_t left, Value_t right,
     params.add(isSuccess); // 7
 
     params.finalize();
+
+    // Мьютекс уже захвачен в начале функции: libpq не допускает
+    // одновременное использование одного PGconn из нескольких потоков.
     auto res = pgConnect_->executeParamsOrError(sql, params);
+    (void)res;
 }
 
 DBManagerPtr initDataBaseManager()

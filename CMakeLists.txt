@@ -11,6 +11,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+set(BOOST_INCLUDE_LIBRARIES asio)
+set(BOOST_ENABLE_CMAKE ON)
+
+
 set(H1_CORE_SOURCES
     src/logger/logger.cpp
     src/calculator/calc.cpp
@@ -29,6 +33,15 @@ set(H1_CORE_SOURCES
     src/local_cache/local_cache.cpp
     # config
     src/config/config.cpp
+    # io_server
+    src/io_server/request_parser.cpp
+    src/io_server/response.cpp
+    src/io_server/io_server.cpp
+    src/io_server/connection_manager.cpp
+    src/io_server/connection.cpp
+    src/io_server/router.cpp
+    src/io_server/handlers/task_manager.cpp
+    src/io_server/server_config.cpp
 )
 
 add_library(h1_core STATIC ${H1_CORE_SOURCES})
@@ -43,14 +56,25 @@ add_executable(
     cmd/main.cpp
 )
 
+add_executable(
+    ${PROJECT_NAME}Server
+    cmd/server_main.cpp
+)
+
 set(H1_COMPILE_OPTIONS
     -Wall
     -Wextra
     -Werror
     -Wpedantic
-    $<$<NOT:$<CONFIG:Release>>:-g;-fno-omit-frame-pointer>    
+    $<$<NOT:$<CONFIG:Release>>:-g;-fno-omit-frame-pointer>
 )
 message(STATUS "[INFO] Set compile options: ${H1_COMPILE_OPTIONS}")
+
+option(H1_USE_TSAN "Build with ThreadSanitizer" OFF)
+if(H1_USE_TSAN)
+    set(H1_TSAN_FLAGS -fsanitize=thread -fno-omit-frame-pointer -g)
+    message(STATUS "[INFO] ThreadSanitizer enabled")
+endif()
 target_compile_options(${PROJECT_NAME}
     PRIVATE
     ${H1_COMPILE_OPTIONS}
@@ -63,12 +87,32 @@ target_compile_options(h1_core
 target_compile_features(h1_core PUBLIC cxx_std_20)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
+if(H1_USE_TSAN)
+    target_compile_options(h1_core PRIVATE ${H1_TSAN_FLAGS})
+    foreach(h1Target ${PROJECT_NAME} ${PROJECT_NAME}Server)
+        target_compile_options(${h1Target} PRIVATE ${H1_TSAN_FLAGS})
+        target_link_options(${h1Target} PRIVATE ${H1_TSAN_FLAGS})
+    endforeach()
+endif()
+
 message(STATUS "[INFO] Load external dependence with FetchContent")
 include(FetchContent)
+
+include(FetchContent)
+FetchContent_Declare(
+    Boost
+    GIT_REPOSITORY https://github.com/boostorg/boost.git
+    GIT_PROGRESS TRUE
+    GIT_TAG boost-1.82.0
+)
+message(DEBUG "Boost_POPULATED=${Boost_POPULATED}")
+FetchContent_MakeAvailable(Boost)
+message(STATUS "[INFO] Boost 🟢")
 
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_PROGRESS TRUE
     GIT_TAG v1.17.0
 )
 message(DEBUG "spdlog_POPULATED=${spdlog_POPULATED}")
@@ -78,6 +122,7 @@ message(STATUS "[INFO] spdlog 🟢")
 FetchContent_Declare(
     cpp_h1_lib
     GIT_REPOSITORY https://github.com/X0re4ik/cpp_h1_lib.git
+    GIT_PROGRESS TRUE
     GIT_TAG v1.1.11-header-only
 )
 message(DEBUG "cpp_h1_lib_POPULATED=${cpp_h1_lib_POPULATED}")
@@ -96,6 +141,7 @@ message(STATUS "[INFO] json 🟢")
 FetchContent_Declare(
     argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+    GIT_PROGRESS TRUE
     GIT_TAG v3.2
 )
 FetchContent_MakeAvailable(argparse)
@@ -104,6 +150,7 @@ message(STATUS "[INFO] argparse 🟢")
 FetchContent_Declare(
     libenvpp
     GIT_REPOSITORY https://github.com/ph3at/libenvpp.git
+    GIT_PROGRESS TRUE
     GIT_TAG v1.5.3
 )
 FetchContent_MakeAvailable(libenvpp)
@@ -121,6 +168,7 @@ target_link_libraries(
     nlohmann_json::nlohmann_json
     PostgreSQL::PostgreSQL
     libenvpp
+    Boost::asio
     PRIVATE
     argparse
     spdlog::spdlog
@@ -132,6 +180,12 @@ target_link_libraries(
     h1_core
 )
 
+
+target_link_libraries(
+    ${PROJECT_NAME}Server
+    PRIVATE
+    h1_core
+)
 
 message(STATUS "Use Clang Format Fix: ${USE_CLANG_FORMAT_FIX}")
 if(USE_CLANG_FORMAT_FIX)
@@ -202,6 +256,9 @@ include(CTest)
 message(STATUS "Build Test: ${BUILD_TESTING}")
 
 if(BUILD_TESTING)
+    # Заголовки/библиотеки GoogleTest не должны попадать в deb-пакет (CPack
+    # выполняет install-правила всех подпроектов); тестам это не нужно.
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     FetchContent_Declare(
         googletest
         URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
@@ -216,6 +273,11 @@ if(BUILD_TESTING)
         src/test_json_parser.cpp
         src/test_application.cpp
         src/test_local_cache.cpp
+        src/test_request_parser.cpp
+        src/test_io_server_router.cpp
+        src/test_task_manager_handler.cpp
+        src/test_server_config.cpp
+        src/test_http_server.cpp
     )
 
     target_compile_features(h1_test PRIVATE cxx_std_20)
@@ -231,36 +293,134 @@ if(BUILD_TESTING)
         GTest::gmock_main
     )
 
+    if(H1_USE_TSAN)
+        target_compile_options(h1_test PRIVATE ${H1_TSAN_FLAGS})
+        target_link_options(h1_test PRIVATE ${H1_TSAN_FLAGS})
+    endif()
+
     set(MEMORYCHECK_COMMAND "/usr/bin/valgrind")
     set(
         MEMORYCHECK_COMMAND_OPTIONS
         "--tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --gen-suppressions=all --error-exitcode=42")
 
     include(GoogleTest)
-    gtest_discover_tests(h1_test)
+    if(H1_USE_TSAN)
+        # На ядрах с высоким ASLR-энтропием TSAN не стартует без отключения
+        # рандомизации адресного пространства (известное ограничение TSAN).
+        add_test(NAME h1_test
+            COMMAND setarch ${CMAKE_SYSTEM_PROCESSOR} -R $<TARGET_FILE:h1_test>)
+    else()
+        gtest_discover_tests(h1_test)
+    endif()
 
     add_custom_target(valgrind-tests
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/valgrind
         COMMAND /usr/bin/valgrind
-            --tool=memcheck
-            --leak-check=full
-            --show-leak-kinds=all
-            --track-origins=yes
-            --error-exitcode=42
-            --log-file=${CMAKE_BINARY_DIR}/valgrind/h1_test.%p.log
-            $<TARGET_FILE:h1_test>
+        --tool=memcheck
+        --leak-check=full
+        --show-leak-kinds=all
+        --track-origins=yes
+        --error-exitcode=42
+        --log-file=${CMAKE_BINARY_DIR}/valgrind/h1_test.%p.log
+        $<TARGET_FILE:h1_test>
         DEPENDS h1_test
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Running unit tests under Valgrind"
     )
+
+    if(H1_USE_TSAN)
+        add_custom_target(tsan-tests
+            COMMAND ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR}
+            --output-on-failure
+            DEPENDS h1_test
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Running tests under ThreadSanitizer"
+        )
+    endif()
 endif()
 
 include(GNUInstallDirs)
 
-install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}Targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+# ==== systemd-юниты в deb-пакете ====
+# Чтобы добавить юнит в пакет, достаточно положить файл в packaging/systemd/
+# (*.service, *.timer, *.socket) - он автоматически попадёт в
+# /usr/lib/systemd/system. Скрипты сопровождения (postinst/prerm/postrm)
+# управляют жизненным циклом юнита: enable при установке, disable при
+# удалении, daemon-reload при установке и после удаления.
+option(H1_INSTALL_SYSTEMD_UNITS
+    "Устанавливать systemd-юниты из packaging/systemd" ON)
+
+if(H1_INSTALL_SYSTEMD_UNITS)
+    file(GLOB H1_SYSTEMD_UNITS CONFIGURE_DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/*.service
+        ${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/*.timer
+        ${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/*.socket
+    )
+
+    if(H1_SYSTEMD_UNITS)
+        # Юниты всегда ставятся в /usr/lib/systemd/system, поэтому каталог
+        # задаётся явно (на Debian CMAKE_INSTALL_LIBDIR может быть multiarch-ом).
+        set(H1_SYSTEMD_UNIT_DIR "lib/systemd/system" CACHE STRING
+            "Каталог установки systemd-юнитов (относительно префикса)")
+        install(FILES ${H1_SYSTEMD_UNITS}
+            DESTINATION ${H1_SYSTEMD_UNIT_DIR}
+        )
+        message(STATUS
+            "[INFO] systemd units: ${H1_SYSTEMD_UNITS} -> /${H1_SYSTEMD_UNIT_DIR}")
+    else()
+        message(STATUS "[INFO] systemd units: каталог packaging/systemd пуст")
+    endif()
+endif()
+
+
+# ==== Конфигурация пакета ====
+# /etc/h1/h1-server.env - переменные окружения серверного юнита
+# (подключение к БД и параметры сервера). Содержимое берётся из
+# packaging/etc/h1/h1-server.env.
+# DESTINATION задаётся абсолютным путём: конфиг должен попадать именно в /etc,
+# а не в ${CPACK_PACKAGING_INSTALL_PREFIX}/etc (=/usr/etc). Файл регистрируется
+# как conffile (см. packaging/deb/conffiles), поэтому dpkg сохраняет правки
+# пользователя при обновлении пакета.
+set(H1_SYSCONF_DIR "/etc/h1" CACHE STRING
+    "Каталог конфигурации сервера в пакете")
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/etc/h1/h1-server.env
+    DESTINATION ${H1_SYSCONF_DIR}
 )
+message(STATUS "[INFO] config: packaging/etc/h1/h1-server.env -> ${H1_SYSCONF_DIR}")
+
+# В deb-пакет входит только серверный бинарник; CLI-приложение h1
+# собирается, но не устанавливается пакетом.
+install(TARGETS ${PROJECT_NAME}Server
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+# ==== CPack: сборка deb-пакета (cpack -G DEB) ====
+set(CPACK_PACKAGE_NAME "h1-server")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_VENDOR "Mochalov Anton")
+set(CPACK_PACKAGE_CONTACT "Mochalov Anton <xoore4ik@gmail.com>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "h1-server - HTTP-сервер калькулятора на C++20 с хранением истории операций в PostgreSQL")
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
+    "HTTP-сервер калькулятора h1. Принимает математическую операцию в виде
+JSON через POST /h1/task, выполняет вычисление и возвращает результат в JSON.
+История операций сохраняется в PostgreSQL и в локальный кеш.
+Поддерживаемые операции: + - * / ^ !.")
+set(CPACK_DEBIAN_PACKAGE_RELEASE 1)
+set(CPACK_DEBIAN_PACKAGE_SECTION utils)
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${CPACK_PACKAGE_CONTACT})
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+# Явный минимум зависимостей; SHLIBDEPS дополнит список автоматически
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libpq5")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
+# Скрипты сопровождения: включение юнита в автозагрузку и daemon-reload
+# при установке (postinst), disable при удалении (prerm), daemon-reload
+# после удаления (postrm); conffiles - список конфигов пакета
+# (dpkg сохраняет пользовательские правки)
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/deb/postinst;${CMAKE_CURRENT_SOURCE_DIR}/packaging/deb/prerm;${CMAKE_CURRENT_SOURCE_DIR}/packaging/deb/postrm;${CMAKE_CURRENT_SOURCE_DIR}/packaging/deb/conffiles")
+
+include(CPack)

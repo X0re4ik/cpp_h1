@@ -1,0 +1,9 @@
+#!/bin/sh
+# Вызывается dpkg после удаления пакета.
+set -e
+
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload || true
+fi
+
+exit 0
