@@ -34,8 +34,8 @@ void initLogger(bool verbose)
                          .setLogName(h1::projectName));
 }
 
-void warmUpCache(h1::lcache::ICalcLocalCache& localCache,
-                 h1::db::IDBManager& dbManager)
+void warmUpCacheFromDb(h1::lcache::ICalcLocalCache& localCache,
+                       h1::db::IDBManager& dbManager)
 {
     const auto limitCacheValue = 1000;
     // The assignment assumes that the database is small enough to load in full.
@@ -116,6 +116,13 @@ void prettyPrintResult(std::ostream& oStream, double result,
 }
 
 } // namespace
+
+void warmUpLocalCache(h1::lcache::ICalcLocalCache& localCache,
+                      h1::db::IDBManager& dbManager)
+{
+    warmUpCacheFromDb(localCache, dbManager);
+}
+
 Application::Application(h1::db::IDBManager& dbManager,
                          h1::lcache::ICalcLocalCache& localCache,
                          std::ostream& oStream, std::ostream& eStream) :
@@ -133,7 +140,7 @@ int Application::run(int argc, char** argv)
 
         H1_LOG_INFO("Аргументы командной строки обработаны");
 
-        warmUpCache(localCache_, dbManager_);
+        warmUpLocalCache(localCache_, dbManager_);
         H1_LOG_INFO("Кэш успешно прогрет");
 
         auto mathOperation =

@@ -6,6 +6,7 @@
 #include "h1/common.hpp"
 #include "h1/entities/CalculationResult/model.hpp"
 
+#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -63,6 +64,7 @@ class DBManager : public IDBManager
                               std::optional<String> error, bool isSuccess);
 
     pg::PGConnectorPtr pgConnect_;
+    std::mutex mtx_;
 };
 
 using DBManagerPtr = std::unique_ptr<IDBManager>;

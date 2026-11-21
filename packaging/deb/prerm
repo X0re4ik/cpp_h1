@@ -4,8 +4,9 @@ set -e
 
 if [ "$1" = "remove" ] && command -v systemctl >/dev/null 2>&1; then
     # Снять юнит с автозагрузки до удаления файла юнита,
-    # чтобы не оставались висячие ссылки в target.wants
-    systemctl disable h1 || true
+    # чтобы не оставались висячие ссылки в target.wants,
+    # и остановить сервер.
+    systemctl disable --now h1-server || true
 fi
 
 exit 0

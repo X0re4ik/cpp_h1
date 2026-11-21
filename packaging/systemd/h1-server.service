@@ -1,0 +1,20 @@
+[Unit]
+Description=h1 - HTTP-сервер калькулятора
+Documentation=https://github.com/X0re4ik/cpp_study
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Параметры подключения к PostgreSQL (DB_*) и адрес/порт сервера
+# (H1_SERVER_HOST, H1_SERVER_PORT, H1_SERVER_THREADS) читаются из
+# /etc/h1/h1-server.env. Файл ставится пакетом и является conffile:
+# при обновлении пакета ваши правки сохраняются.
+# Префикс "-" означает, что файл может отсутствовать.
+EnvironmentFile=-/etc/h1/h1-server.env
+ExecStart=/usr/bin/h1Server
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

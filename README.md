@@ -54,6 +54,10 @@ cmake --build build
 
 ## Сборка deb-пакета
 
+Пакет содержит только серверный режим: бинарник `h1Server`, systemd-юнит
+`h1-server.service` и конфиг `/etc/h1/h1-server.env`. CLI-приложение `h1`
+собирается для разработки, но в пакет не входит.
+
 Собрать пакет (требуется обычная сборка; `make package` сам соберет проект):
 
 ```bash
@@ -63,34 +67,32 @@ cmake --build build --parallel
 cd build && cpack -G DEB
 ```
 
-Готовый пакет: `build/h1_1.0-1_amd64.deb`.
+Готовый пакет: `build/h1-server_1.0-1_amd64.deb`.
 
 Установка через apt (apt сам поставит зависимость `libpq5`):
 
 ```bash
-sudo apt-get install ./build/h1_1.0-1_amd64.deb
+sudo apt-get install ./build/h1-server_1.0-1_amd64.deb
 ```
 
-После установки бинарник доступен как `h1`:
+После установки серверный бинарник доступен как `h1Server`:
 
 ```bash
-h1 --help
-h1 --config '{"left": 2, "right": 3, "operation": "+"}'
+h1Server --help
 ```
 
 Удаление:
 
 ```bash
-sudo apt-get remove h1
+sudo apt-get remove h1-server
 ```
 
 Замечание: повторная установка той же версии требует `sudo apt-get install
---reinstall ./build/h1_1.0-1_amd64.deb` либо bump ревизии пакета
+--reinstall ./build/h1-server_1.0-1_amd64.deb` либо bump ревизии пакета
 (`CPACK_DEBIAN_PACKAGE_RELEASE` в `CMakeLists.txt`).
 
-В состав пакета входит `/usr/bin/h1` и systemd-юниты из `packaging/systemd/`
-(см. ниже). PostgreSQL-сервер не является зависимостью пакета — для работы
-с БД поднимите PostgreSQL отдельно (например,
+PostgreSQL-сервер не является зависимостью пакета — для работы с БД
+поднимите PostgreSQL отдельно (например,
 `docker compose -f docker/docker-compose.dev.yaml up -d`) и задайте
 переменные окружения из `.env`.
 
@@ -101,33 +103,26 @@ sudo apt-get remove h1
 автоматически попадёт в `/usr/lib/systemd/system`
 (отключается опцией `-DH1_INSTALL_SYSTEMD_UNITS=OFF`).
 
-В пакете уже есть пример `h1.service` (разовый расчёт, `Type=oneshot`).
-При установке пакета юнит автоматически включается в автозагрузку
-(`postinst` выполняет `systemctl enable h1`), поэтому расчёт выполняется
-и при каждой загрузке машины:
+В пакет входит `h1-server.service` (`Type=simple`) — долгоживущий
+HTTP-сервер `h1Server`. Он читает `DB_*` и `H1_SERVER_*` из
+`/etc/h1/h1-server.env` (conffile) и включается в автозагрузку при
+установке пакета:
 
 ```bash
-systemctl is-enabled h1     # enabled
-sudo systemctl start h1     # выполнить операцию из ExecStart вручную
-systemctl status h1         # oneshot: после расчёта inactive (dead)
-journalctl -u h1            # результат расчёта
-sudo systemctl disable h1   # убрать из автозагрузки
-```
-
-Приложению нужны переменные окружения для подключения к PostgreSQL
-(`DB_PGHOST`, `DB_PGPORT`, `DB_PGDATABASE`, `DB_PGUSER`, `DB_PGPASSWORD`).
-Конфиг ставится пакетом в `/etc/h1/h1.env` (он же читается юнитом) и
-зарегистрирован как conffile — dpkg сохранит ваши правки при обновлении:
-
-```bash
-sudoedit /etc/h1/h1.env       # укажите свои параметры подключения
+sudoedit /etc/h1/h1-server.env   # параметры БД и адрес/порт сервера
+sudo systemctl start h1-server
+systemctl status h1-server       # active (running)
+journalctl -u h1-server -f       # логи сервера
+sudo systemctl stop h1-server
+sudo systemctl disable h1-server # убрать из автозагрузки
 ```
 
 При установке и удалении пакета скрипты `packaging/deb/postinst` (включение
-юнита в автозагрузку), `packaging/deb/prerm` (снятие с автозагрузки при
-удалении) и `packaging/deb/postrm` выполняют `systemctl daemon-reload`,
-поэтому после добавления нового юнита в `packaging/systemd/` и переустановки
-пакета он сразу виден systemd без ручной перезагрузки демона.
+юнита в автозагрузку), `packaging/deb/prerm` (снятие с автозагрузки и
+остановка сервера при удалении) и `packaging/deb/postrm` выполняют
+`systemctl daemon-reload`, поэтому после добавления нового юнита в
+`packaging/systemd/` и переустановки пакета он сразу виден systemd без ручной
+перезагрузки демона.
 
 ## Запуск
 
@@ -213,6 +208,76 @@ sudoedit /etc/h1/h1.env       # укажите свои параметры по�
 В этом случае приложение печатает сообщение об ошибке в `stderr` и записывает
 ошибку в лог.
 
+## Веб-сервер
+
+Помимо CLI-приложения собирается серверный бинарник `h1Server`. Он
+предоставляет единственную ручку `POST /h1/task`, которая принимает JSON того
+же формата, что и `--config`, и возвращает результат в JSON.
+
+Запуск (нужны переменные `DB_PG*` из `.env`):
+
+```bash
+set -a; . ./.env; set +a
+./build/bin/h1Server --host 127.0.0.1 --port 8080 --threads 8
+```
+
+Параметры можно задать через CLI или окружение (приоритет: CLI → env →
+значение по умолчанию):
+
+| CLI | Переменная окружения | По умолчанию |
+|---|---|---|
+| `--host` | `H1_SERVER_HOST` | `0.0.0.0` |
+| `--port` | `H1_SERVER_PORT` | `8080` |
+| `--threads` | `H1_SERVER_THREADS` | `4` (минимум `2`) |
+| `--verbose` | — | выключено |
+
+`h1Server --help` выводит справку и не требует подключения к PostgreSQL.
+Сервер требует минимум 2 потока обработки: значения `--threads 1` и
+`H1_SERVER_THREADS=1` отклоняются.
+
+Успешный расчёт — HTTP 200:
+
+```bash
+curl -X POST http://localhost:8080/h1/task \
+  -H 'Content-Type: application/json' \
+  -d '{"left": 2, "right": 3, "operation": "+"}'
+```
+
+```json
+{"operation":"+","left":2.0,"right":3.0,"result":5.0,"fromCache":false}
+```
+
+Факториал:
+
+```bash
+curl -X POST http://localhost:8080/h1/task \
+  -H 'Content-Type: application/json' \
+  -d '{"value": 5, "operation": "!"}'
+```
+
+```json
+{"operation":"!","value":5.0,"result":120.0,"fromCache":false}
+```
+
+Любая ошибка (невалидный JSON, деление на ноль, неизвестная операция) —
+HTTP 500 и JSON с текстом ошибки:
+
+```bash
+curl -i -X POST http://localhost:8080/h1/task \
+  -H 'Content-Type: application/json' \
+  -d 'not-json'
+```
+
+```json
+{"error":"[json.exception.parse_error.101] ..."}
+```
+
+Нагрузочная проверка:
+
+```bash
+python3 loadtest.py --requests 5000 --concurrency 100
+```
+
 ## Тесты
 
 Сборка с тестами:
@@ -233,6 +298,31 @@ ctest --test-dir build --output-on-failure
 ```bash
 ./build/bin/h1_test
 ```
+
+Сетевой тест `HttpServerTest` поднимает реальный `IOServer` на локальном
+порту и проверяет HTTP-статус и JSON-результат через Boost.Asio-клиент:
+
+```bash
+ctest --test-dir build -R HttpServer --output-on-failure
+```
+
+## ThreadSanitizer
+
+Проверка гонок данных и deadlock:
+
+```bash
+cmake -S . -B build-tsan -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DH1_USE_TSAN=ON
+cmake --build build-tsan --parallel
+ctest --test-dir build-tsan --output-on-failure
+# или:
+make tsan
+```
+
+## Документация изменений
+
+Планы, требования и решения ведутся в OpenSpec: `openspec/changes/<change>/`
+(proposal, specs, design, tasks). Отдельные документы
+`docs/task4-plan-*.md` не используются: формат планов — выбор разработчика.
 
 ## Форматирование
 

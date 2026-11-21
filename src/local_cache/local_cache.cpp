@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <mutex>
 #include <string>
 #include <utility>
 
@@ -72,11 +73,13 @@ OpTask::HashMethod::Hash_t
 
 void CalcLocalCache::clear()
 {
+    std::lock_guard<std::mutex> lock(mtx_);
     local_.clear();
 }
 
 std::vector<CalcLocalCache::Result_t> CalcLocalCache::values() const
 {
+    std::lock_guard<std::mutex> lock(mtx_);
     std::vector<Result_t> localValues;
     localValues.reserve(local_.size() * 2);
     for (const auto& [_, value] : local_)
@@ -89,6 +92,7 @@ std::vector<CalcLocalCache::Result_t> CalcLocalCache::values() const
 // NOTE: Возвращает true, если был создан, false если уже был
 bool CalcLocalCache::add(const OpTask& opTask, Result_t result)
 {
+    std::lock_guard<std::mutex> lock(mtx_);
     auto iter = local_.find(opTask);
     if (iter != local_.end())
     {
@@ -100,12 +104,14 @@ bool CalcLocalCache::add(const OpTask& opTask, Result_t result)
 
 CalcLocalCache::Result_t CalcLocalCache::get(const OpTask& opTask) const
 {
+    std::lock_guard<std::mutex> lock(mtx_);
     return local_.at(opTask);
 }
 
 std::optional<CalcLocalCache::Result_t>
     CalcLocalCache::getIfExist(const OpTask& opTask) const
 {
+    std::lock_guard<std::mutex> lock(mtx_);
     auto iter = local_.find(opTask);
     if (iter == local_.end())
     {
